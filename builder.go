@@ -99,6 +99,8 @@ func (b *StepBuilder) Retry() stepBuilder {
 		newRet = newRemoteStepWithRetry(b.currentStep.(remoteStep))
 	case localStep:
 		newRet = newLocalStepWithRetry(b.currentStep.(localStep))
+	default:
+		panic("Unknown step type")
 	}
 
 	b.currentStep = newRet
