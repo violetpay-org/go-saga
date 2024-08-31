@@ -1,69 +1,69 @@
 package saga
 
-type stepBuilder interface {
-	Step(name string) invocableBuild
+type stepBuilder[Tx TxContext] interface {
+	Step(name string) invocableBuild[Tx]
 	Build() Definition
 }
 
-type invocableBuild interface {
-	Invoke(endpoint Endpoint) invocationOptionBuild
-	LocalInvoke(endpoint LocalEndpoint) localInvocationOptionBuild
+type invocableBuild[Tx TxContext] interface {
+	Invoke(endpoint Endpoint[Tx]) invocationOptionBuild[Tx]
+	LocalInvoke(endpoint LocalEndpoint[Tx]) localInvocationOptionBuild[Tx]
 }
 
-type invocationOptionBuild interface {
-	stepBuilder
-	compensableBuild
-	retryableBuild
+type invocationOptionBuild[Tx TxContext] interface {
+	stepBuilder[Tx]
+	compensableBuild[Tx]
+	retryableBuild[Tx]
 }
 
-type compensableBuild interface {
-	WithCompensation(endpoint Endpoint) invokeOptionWithoutCompensationBuild
+type compensableBuild[Tx TxContext] interface {
+	WithCompensation(endpoint Endpoint[Tx]) invokeOptionWithoutCompensationBuild[Tx]
 }
 
-type localInvocationOptionBuild interface {
-	stepBuilder
-	localCompensableBuild
-	retryableBuild
+type localInvocationOptionBuild[Tx TxContext] interface {
+	stepBuilder[Tx]
+	localCompensableBuild[Tx]
+	retryableBuild[Tx]
 }
 
-type localCompensableBuild interface {
-	WithLocalCompensation(endpoint LocalEndpoint) invokeOptionWithoutCompensationBuild
+type localCompensableBuild[Tx TxContext] interface {
+	WithLocalCompensation(endpoint LocalEndpoint[Tx]) invokeOptionWithoutCompensationBuild[Tx]
 }
 
-type invokeOptionWithoutCompensationBuild interface {
-	stepBuilder
-	retryableBuild
+type invokeOptionWithoutCompensationBuild[Tx TxContext] interface {
+	stepBuilder[Tx]
+	retryableBuild[Tx]
 }
 
-type retryableBuild interface {
-	Retry() stepBuilder
+type retryableBuild[Tx TxContext] interface {
+	Retry() stepBuilder[Tx]
 }
 
-type StepBuilder struct {
+type StepBuilder[Tx TxContext] struct {
 	steps           []Step
 	currentStep     Step
 	currentStepName string
 }
 
-func NewStepBuilder() stepBuilder {
-	return &StepBuilder{
+func NewStepBuilder[Tx TxContext]() stepBuilder[Tx] {
+	return &StepBuilder[Tx]{
 		steps: make([]Step, 0),
 	}
 }
 
-func (b *StepBuilder) Invoke(endpoint Endpoint) invocationOptionBuild {
+func (b *StepBuilder[Tx]) Invoke(endpoint Endpoint[Tx]) invocationOptionBuild[Tx] {
 	b.currentStep = newRemoteStep(b.currentStepName, endpoint)
 
 	return b
 }
 
-func (b *StepBuilder) LocalInvoke(endpoint LocalEndpoint) localInvocationOptionBuild {
+func (b *StepBuilder[Tx]) LocalInvoke(endpoint LocalEndpoint[Tx]) localInvocationOptionBuild[Tx] {
 	b.currentStep = newLocalStep(b.currentStepName, endpoint)
 
 	return b
 }
 
-func (b *StepBuilder) Build() Definition {
+func (b *StepBuilder[Tx]) Build() Definition {
 	if b.currentStep != nil {
 		b.steps = append(b.steps, b.currentStep)
 	}
@@ -76,29 +76,29 @@ func (b *StepBuilder) Build() Definition {
 	return newDefinition(b.steps)
 }
 
-func (b *StepBuilder) cleanUp() {
+func (b *StepBuilder[Tx]) cleanUp() {
 	b.steps = make([]Step, 0)
 	b.currentStep = nil
 	b.currentStepName = ""
 }
 
-func (b *StepBuilder) WithCompensation(endpoint Endpoint) invokeOptionWithoutCompensationBuild {
-	b.currentStep = newRemoteStepWithCompensation(b.currentStep.(remoteStep), endpoint)
+func (b *StepBuilder[Tx]) WithCompensation(endpoint Endpoint[Tx]) invokeOptionWithoutCompensationBuild[Tx] {
+	b.currentStep = newRemoteStepWithCompensation(b.currentStep.(remoteStep[Tx]), endpoint)
 	return b
 }
 
-func (b *StepBuilder) WithLocalCompensation(endpoint LocalEndpoint) invokeOptionWithoutCompensationBuild {
-	b.currentStep = newLocalStepWithCompensation(b.currentStep.(localStep), endpoint)
+func (b *StepBuilder[Tx]) WithLocalCompensation(endpoint LocalEndpoint[Tx]) invokeOptionWithoutCompensationBuild[Tx] {
+	b.currentStep = newLocalStepWithCompensation(b.currentStep.(localStep[Tx]), endpoint)
 	return b
 }
 
-func (b *StepBuilder) Retry() stepBuilder {
+func (b *StepBuilder[Tx]) Retry() stepBuilder[Tx] {
 	var newRet Step
 	switch b.currentStep.(type) {
-	case remoteStep:
-		newRet = newRemoteStepWithRetry(b.currentStep.(remoteStep))
-	case localStep:
-		newRet = newLocalStepWithRetry(b.currentStep.(localStep))
+	case remoteStep[Tx]:
+		newRet = newRemoteStepWithRetry(b.currentStep.(remoteStep[Tx]))
+	case localStep[Tx]:
+		newRet = newLocalStepWithRetry(b.currentStep.(localStep[Tx]))
 	default:
 		panic("Unknown step type")
 	}
@@ -107,7 +107,7 @@ func (b *StepBuilder) Retry() stepBuilder {
 	return b
 }
 
-func (b *StepBuilder) Step(name string) invocableBuild {
+func (b *StepBuilder[Tx]) Step(name string) invocableBuild[Tx] {
 	if b.currentStep != nil {
 		b.steps = append(b.steps, b.currentStep)
 	}
