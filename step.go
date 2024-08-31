@@ -14,8 +14,8 @@ type Step interface {
 	MustBeCompleted() bool
 }
 
-func newRemoteStep(name string, endpoint Endpoint) remoteStep {
-	return remoteStep{
+func newRemoteStep[Tx TxContext](name string, endpoint Endpoint[Tx]) remoteStep[Tx] {
+	return remoteStep[Tx]{
 		name: name,
 
 		invocation: newRemoteInvocationAction(endpoint),
@@ -23,8 +23,8 @@ func newRemoteStep(name string, endpoint Endpoint) remoteStep {
 	}
 }
 
-func newRemoteStepWithCompensation(step remoteStep, endpoint Endpoint) remoteStep {
-	return remoteStep{
+func newRemoteStepWithCompensation[Tx TxContext](step remoteStep[Tx], endpoint Endpoint[Tx]) remoteStep[Tx] {
+	return remoteStep[Tx]{
 		name:         step.name,
 		invocation:   step.invocation,
 		compensation: newRemoteCompensationAction(endpoint),
@@ -32,8 +32,8 @@ func newRemoteStepWithCompensation(step remoteStep, endpoint Endpoint) remoteSte
 	}
 }
 
-func newRemoteStepWithRetry(step remoteStep) remoteStep {
-	return remoteStep{
+func newRemoteStepWithRetry[Tx TxContext](step remoteStep[Tx]) remoteStep[Tx] {
+	return remoteStep[Tx]{
 		name:         step.name,
 		invocation:   step.invocation,
 		compensation: step.compensation,
@@ -41,51 +41,58 @@ func newRemoteStepWithRetry(step remoteStep) remoteStep {
 	}
 }
 
-type remoteStep struct {
+type remoteStep[Tx TxContext] struct {
 	name string
 
-	invocation   *invokeAction
-	compensation *compensateAction
-	retry        bool
+	invocation     invokeAction[Tx]
+	invokeEndpoint Endpoint[Tx]
+	compensation   compensateAction[Tx]
+	compEndpoint   Endpoint[Tx]
+
+	retry bool
 }
 
-func (s remoteStep) Name() string {
+func (s remoteStep[Tx]) Name() string {
 	return s.name
 }
 
-func (s remoteStep) IsCompensable() bool {
+func (s remoteStep[Tx]) IsCompensable() bool {
 	return s.compensation != nil
 }
 
-func (s remoteStep) IsInvocable() bool {
+func (s remoteStep[Tx]) IsInvocable() bool {
 	return s.invocation != nil
 }
 
-func (s remoteStep) MustBeCompleted() bool {
+func (s remoteStep[Tx]) MustBeCompleted() bool {
 	return s.retry == true
 }
 
-func (s remoteStep) SetRetry(retry bool) remoteStep {
+func (s remoteStep[Tx]) SetRetry(retry bool) remoteStep[Tx] {
 	s.retry = retry
 	return s
 }
 
-func newRemoteCompensationAction(endpoint Endpoint) *compensateAction {
-	return &compensateAction{}
+func newRemoteCompensationAction[Tx TxContext](endpoint Endpoint[Tx]) compensateAction[Tx] {
+	return func(s Session) Executable[Tx] {
+		command := endpoint.CommandConstructor()(s)
+		return endpoint.CommandRepository().SaveMessage(command)
+	}
 }
 
-type compensateAction struct {
+type compensateAction[Tx TxContext] func(Session) Executable[Tx]
+
+func newRemoteInvocationAction[Tx TxContext](endpoint Endpoint[Tx]) invokeAction[Tx] {
+	return func(s Session) Executable[Tx] {
+		command := endpoint.CommandConstructor()(s)
+		return endpoint.CommandRepository().SaveMessage(command)
+	}
 }
 
-func newRemoteInvocationAction(endpoint Endpoint) *invokeAction {
-	return &invokeAction{}
-}
+type invokeAction[Tx TxContext] func(Session) Executable[Tx]
 
-type invokeAction struct {
-}
-
-func newLocalStep(name string, endpoint LocalEndpoint) localStep {
-	return localStep{
+func newLocalStep[Tx TxContext](name string, endpoint LocalEndpoint[Tx]) localStep[Tx] {
+	return localStep[Tx]{
 		name: name,
 
 		invocation: newLocalInvokeAction(endpoint),
@@ -93,8 +100,8 @@ func newLocalStep(name string, endpoint LocalEndpoint) localStep {
 	}
 }
 
-func newLocalStepWithCompensation(step localStep, endpoint LocalEndpoint) localStep {
-	return localStep{
+func newLocalStepWithCompensation[Tx TxContext](step localStep[Tx], endpoint LocalEndpoint[Tx]) localStep[Tx] {
+	return localStep[Tx]{
 		name:         step.name,
 		invocation:   step.invocation,
 		compensation: newLocalCompensateAction(endpoint),
@@ -102,8 +109,8 @@ func newLocalStepWithCompensation(step localStep, endpoint LocalEndpoint) localS
 	}
 }
 
-func newLocalStepWithRetry(step localStep) localStep {
-	return localStep{
+func newLocalStepWithRetry[Tx TxContext](step localStep[Tx]) localStep[Tx] {
+	return localStep[Tx]{
 		name:         step.name,
 		invocation:   step.invocation,
 		compensation: step.compensation,
@@ -111,45 +118,73 @@ func newLocalStepWithRetry(step localStep) localStep {
 	}
 }
 
-type localStep struct {
+type localStep[Tx TxContext] struct {
 	name string
 
-	compensation *localCompensateAction
-	invocation   *localInvokeAction
-	retry        bool
+	invocation     localInvokeAction[Tx]
+	invokeEndpoint LocalEndpoint[Tx]
+	compensation   localCompensateAction[Tx]
+	compEndpoint   LocalEndpoint[Tx]
+
+	retry bool
 }
 
-func (s localStep) Name() string {
+func (s localStep[Tx]) Name() string {
 	return s.name
 }
 
-func (s localStep) IsCompensable() bool {
+func (s localStep[Tx]) IsCompensable() bool {
 	return s.compensation != nil
 }
 
-func (s localStep) IsInvocable() bool {
+func (s localStep[Tx]) IsInvocable() bool {
 	return s.invocation != nil
 }
 
-func (s localStep) MustBeCompleted() bool {
+func (s localStep[Tx]) MustBeCompleted() bool {
 	return s.retry == true
 }
 
-func (s localStep) SetRetry(retry bool) localStep {
+func (s localStep[Tx]) SetRetry(retry bool) localStep[Tx] {
 	s.retry = retry
 	return s
 }
 
-func newLocalCompensateAction(endpoint Endpoint) *localCompensateAction {
-	return &localCompensateAction{}
+func newLocalCompensateAction[Tx TxContext](endpoint LocalEndpoint[Tx]) localCompensateAction[Tx] {
+	action := func(s Session) (Executable[Tx], error) {
+		cmd, err := endpoint.handle(s)
+		if err != nil {
+			msg := endpoint.FailureResponseConstructor()(s)
+			return endpoint.FailureResRepository().SaveMessage(msg), nil
+		}
+
+		msg := endpoint.SuccessResponseConstructor()(s)
+		cmd2 := endpoint.SuccessResRepository().SaveMessage(msg)
+		return CombineExecutables(cmd, cmd2), nil
+	}
+
+	return action
 }
 
-type localCompensateAction struct {
+type localCompensateAction[Tx TxContext] func(Session) (Executable[Tx], error)
+
+func newLocalInvokeAction[Tx TxContext](endpoint LocalEndpoint[Tx]) localInvokeAction[Tx] {
+	return func(s Session) (Executable[Tx], error) {
+		cmd, err := endpoint.handle(s)
+		if err != nil {
+			msg := endpoint.FailureResponseConstructor()(s)
+			return endpoint.FailureResRepository().SaveMessage(msg), nil
+		}
+
+		msg := endpoint.SuccessResponseConstructor()(s)
+		cmd2 := endpoint.SuccessResRepository().SaveMessage(msg)
+		return CombineExecutables(cmd, cmd2), nil
+	}
 }
 
-func newLocalInvokeAction(endpoint Endpoint) *localInvokeAction {
-	return &localInvokeAction{}
-}
+type localInvokeAction[Tx TxContext] func(Session) (Executable[Tx], error)
 
-type localInvokeAction struct {
+func (a localInvokeAction[Tx]) destination() ChannelName {
+
+	return
 }
