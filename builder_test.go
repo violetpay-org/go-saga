@@ -5,9 +5,93 @@ import (
 	"testing"
 )
 
+type testRepo struct {
+}
+
+func (r *testRepo) GetMessagesFromOutbox(batchSize int) ([]Message, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) GetMessagesFromDeadLetter(batchSize int) ([]Message, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) SaveMessage(message Message) Executable[tx] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) SaveMessages(messages []Message) Executable[tx] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) SaveDeadLetter(message Message) Executable[tx] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) SaveDeadLetters(message []Message) Executable[tx] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) DeleteMessage(message Message) Executable[tx] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) DeleteMessages(messages []Message) Executable[tx] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) DeleteDeadLetter(message Message) Executable[tx] {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *testRepo) DeleteDeadLetters(message Message) Executable[tx] {
+	//TODO implement me
+	panic("implement me")
+}
+
+type tx interface{}
+
+var (
+	msgConstructor = func(session Session) Message {
+		return nil
+	}
+
+	txEndpoint = NewEndpoint[tx](
+		"",
+		msgConstructor,
+		&testRepo{},
+		"",
+		msgConstructor,
+		"",
+		msgConstructor,
+	)
+
+	txLocalEndpoint = NewLocalEndpoint[tx](
+		"",
+		msgConstructor,
+		&testRepo{},
+		"",
+		msgConstructor,
+		&testRepo{},
+		func(session Session) (Executable[tx], error) {
+			return nil, nil
+		},
+	)
+)
+
 func TestStepBuilder(t *testing.T) {
-	var builder StepBuilder
-	builder = StepBuilder{
+	var builder StepBuilder[tx]
+
+	builder = StepBuilder[tx]{
 		steps: make([]Step, 0),
 	}
 
@@ -20,8 +104,8 @@ func TestStepBuilder(t *testing.T) {
 	t.Run("Build", func(t *testing.T) {
 		def := builder.
 			Step(step1Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Retry().
 			Build()
 
@@ -36,8 +120,8 @@ func TestStepBuilder(t *testing.T) {
 	t.Run("Build with local endpoint", func(t *testing.T) {
 		def := builder.
 			Step(step1Name).
-			LocalInvoke(nil).
-			WithLocalCompensation(nil).
+			LocalInvoke(txLocalEndpoint).
+			WithLocalCompensation(txLocalEndpoint).
 			Retry().
 			Build()
 
@@ -52,12 +136,12 @@ func TestStepBuilder(t *testing.T) {
 	t.Run("Build with multiple steps", func(t *testing.T) {
 		def := builder.
 			Step(step1Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Retry().
 			Step(step2Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Retry().
 			Build()
 
@@ -77,12 +161,12 @@ func TestStepBuilder(t *testing.T) {
 	t.Run("Build with multiple steps with local endpoint", func(t *testing.T) {
 		def := builder.
 			Step(step1Name).
-			LocalInvoke(nil).
-			WithLocalCompensation(nil).
+			LocalInvoke(txLocalEndpoint).
+			WithLocalCompensation(txLocalEndpoint).
 			Retry().
 			Step(step2Name).
-			LocalInvoke(nil).
-			WithLocalCompensation(nil).
+			LocalInvoke(txLocalEndpoint).
+			WithLocalCompensation(txLocalEndpoint).
 			Retry().
 			Build()
 
@@ -102,12 +186,12 @@ func TestStepBuilder(t *testing.T) {
 	t.Run("Build with multiple steps with mixed endpoint", func(t *testing.T) {
 		def := builder.
 			Step(step1Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Retry().
 			Step(step2Name).
-			LocalInvoke(nil).
-			WithLocalCompensation(nil).
+			LocalInvoke(txLocalEndpoint).
+			WithLocalCompensation(txLocalEndpoint).
 			Retry().
 			Build()
 
@@ -124,12 +208,12 @@ func TestStepBuilder(t *testing.T) {
 
 		def = builder.
 			Step(step1Name).
-			LocalInvoke(nil).
-			WithLocalCompensation(nil).
+			LocalInvoke(txLocalEndpoint).
+			WithLocalCompensation(txLocalEndpoint).
 			Retry().
 			Step(step2Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Retry().
 			Build()
 
@@ -149,7 +233,7 @@ func TestStepBuilder(t *testing.T) {
 	t.Run("Build with no options", func(t *testing.T) {
 		def := builder.
 			Step(step1Name).
-			Invoke(nil).
+			Invoke(txEndpoint).
 			Retry().
 			Build()
 
@@ -162,7 +246,7 @@ func TestStepBuilder(t *testing.T) {
 
 		def = builder.
 			Step(step1Name).
-			LocalInvoke(nil).
+			LocalInvoke(txLocalEndpoint).
 			Retry().
 			Build()
 
@@ -175,10 +259,10 @@ func TestStepBuilder(t *testing.T) {
 
 		def = builder.
 			Step(step1Name).
-			Invoke(nil).
+			Invoke(txEndpoint).
 			Retry().
 			Step(step2Name).
-			Invoke(nil).
+			Invoke(txEndpoint).
 			Retry().
 			Build()
 
@@ -196,8 +280,8 @@ func TestStepBuilder(t *testing.T) {
 
 		def = builder.
 			Step(step1Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Build()
 
 		assert.Equal(t, 1, len(def.steps))
@@ -209,8 +293,8 @@ func TestStepBuilder(t *testing.T) {
 
 		def = builder.
 			Step(step1Name).
-			LocalInvoke(nil).
-			WithLocalCompensation(nil).
+			LocalInvoke(txLocalEndpoint).
+			WithLocalCompensation(txLocalEndpoint).
 			Build()
 
 		assert.Equal(t, 1, len(def.steps))
@@ -222,11 +306,11 @@ func TestStepBuilder(t *testing.T) {
 
 		def = builder.
 			Step(step1Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Step(step2Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Build()
 
 		assert.Equal(t, 2, len(def.steps))
@@ -245,13 +329,13 @@ func TestStepBuilder(t *testing.T) {
 	t.Run("Build 3 steps with mixed endpoint", func(t *testing.T) {
 		def := builder.
 			Step(step1Name).
-			Invoke(nil).
-			WithCompensation(nil).
+			Invoke(txEndpoint).
+			WithCompensation(txEndpoint).
 			Retry().
 			Step(step2Name).
-			LocalInvoke(nil).
+			LocalInvoke(txLocalEndpoint).
 			Step(step3Name).
-			Invoke(nil).
+			Invoke(txEndpoint).
 			Retry().
 			Build()
 
@@ -274,13 +358,13 @@ func TestStepBuilder(t *testing.T) {
 
 		def = builder.
 			Step(step1Name).
-			LocalInvoke(nil).
-			WithLocalCompensation(nil).
+			LocalInvoke(txLocalEndpoint).
+			WithLocalCompensation(txLocalEndpoint).
 			Retry().
 			Step(step2Name).
-			Invoke(nil).
+			Invoke(txEndpoint).
 			Step(step3Name).
-			LocalInvoke(nil).
+			LocalInvoke(txLocalEndpoint).
 			Retry().
 			Build()
 
