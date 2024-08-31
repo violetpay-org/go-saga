@@ -24,7 +24,7 @@ func (o *orchestrator[Tx]) StartSaga(saga Saga[Tx], sessionArgs map[string]inter
 	var uow *UnitOfWork[Tx]
 	var err error
 
-	sagaSession := saga.factory(sessionArgs)
+	sagaSession := saga.createSession(sessionArgs)
 	sagaDef := saga.Definition()
 
 	firstStep := sagaDef.FirstStep()

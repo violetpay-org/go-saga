@@ -13,10 +13,14 @@ const (
 type SessionFactory func(map[string]interface{}) Session
 
 type Session interface {
+	// ID returns the ID of the session.
 	ID() string
 
 	// CurrentStep returns the current step of the session.
 	CurrentStep() string
+
+	// UpdateCurrentStep updates the current step of the session.
+	UpdateCurrentStep(step Step) error
 
 	// IsPending returns true if the session is pending. Session can be pending state when following conditions are met:
 	//
@@ -35,12 +39,6 @@ type Session interface {
 
 	// SetState sets the state of the session.
 	SetState(state State)
-
-	// NextStep moves the session to the next step.
-	NextStep() error
-
-	// UpdateCurrentStep updates the current step of the session.
-	UpdateCurrentStep(step Step) error
 }
 
 type SessionRepository[Tx TxContext] interface {

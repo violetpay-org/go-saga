@@ -54,6 +54,12 @@ func NewRegistry[Tx TxContext](orchestrator Orchestrator[Tx]) *Registry[Tx] {
 	}
 }
 
+func (r *Registry[Tx]) RegisterSaga(saga Saga[Tx]) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.sagas = append(r.sagas, saga)
+}
+
 type Registry[Tx TxContext] struct {
 	sagas        []Saga[Tx]
 	mutex        sync.Mutex
