@@ -61,7 +61,7 @@ func CombineExecutables[Tx TxContext](executables ...Executable[Tx]) Executable[
 	}
 }
 
-type UnitOfWorkFactory[Tx TxContext] func(ctx context.Context) (UnitOfWork[Tx], error)
+type UnitOfWorkFactory[Tx TxContext] func(ctx context.Context) (*UnitOfWork[Tx], error)
 
 type UnitOfWork[Tx TxContext] struct {
 	handler  TxHandler[Tx]
