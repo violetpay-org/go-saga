@@ -23,6 +23,29 @@ type Channel[Tx saga.TxContext] interface {
 	saga.AbstractChannel[Tx]
 }
 
+func NewChannel[Tx saga.TxContext](name saga.ChannelName, registry *saga.Registry[Tx], repository saga.AbstractMessageRepository[Tx], send func(message saga.Message) error) Channel[Tx] {
+	return &channel[Tx]{name: name, registry: registry, repository: repository, send: send}
+}
+
+type channel[Tx saga.TxContext] struct {
+	name       saga.ChannelName
+	registry   *saga.Registry[Tx]
+	repository saga.AbstractMessageRepository[Tx]
+	send       func(message saga.Message) error
+}
+
+func (c *channel[Tx]) Name() saga.ChannelName {
+	return c.name
+}
+
+func (c *channel[Tx]) Send(message saga.Message) error {
+	return c.send(message)
+}
+
+func (c *channel[Tx]) Repository() saga.AbstractMessageRepository[Tx] {
+	return c.repository
+}
+
 type channelRegistry[Tx saga.TxContext] struct {
 	channels sync.Map
 }
