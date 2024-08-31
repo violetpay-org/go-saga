@@ -183,8 +183,3 @@ func newLocalInvokeAction[Tx TxContext](endpoint LocalEndpoint[Tx]) localInvokeA
 }
 
 type localInvokeAction[Tx TxContext] func(Session) (Executable[Tx], error)
-
-func (a localInvokeAction[Tx]) destination() ChannelName {
-
-	return
-}
