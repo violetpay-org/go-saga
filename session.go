@@ -10,14 +10,16 @@ const (
 	StateIsRetrying
 )
 
-type SessionFactory func(map[string]interface{}) Session
+type SessionFactory[S Session] func(map[string]interface{}) S
+
+//type SessionID string
 
 type Session interface {
 	// ID returns the ID of the session.
 	ID() string
 
 	// CurrentStep returns the current step of the session.
-	CurrentStep() string
+	CurrentStep() Step
 
 	// UpdateCurrentStep updates the current step of the session.
 	UpdateCurrentStep(step Step) error
@@ -41,13 +43,31 @@ type Session interface {
 	SetState(state State)
 }
 
-type SessionRepository[Tx TxContext] interface {
+type SessionRepository[S Session, Tx TxContext] interface {
 	// Load finds a session by its ID.
-	Load(id string) (Session, error)
+	Load(id string) (S, error)
 
 	// Save saves a session.
-	Save(sess Session) Executable[Tx]
+	Save(sess S) Executable[Tx]
 
 	// Delete deletes a session.
-	Delete(sess Session) Executable[Tx]
+	Delete(sess S) Executable[Tx]
+}
+
+type sessionRepository[Tx TxContext] struct {
+	load   func(id string) (Session, error)
+	save   func(sess Session) Executable[Tx]
+	delete func(sess Session) Executable[Tx]
+}
+
+func (s *sessionRepository[Tx]) Load(id string) (Session, error) {
+	return s.load(id)
+}
+
+func (s *sessionRepository[Tx]) Save(sess Session) Executable[Tx] {
+	return s.save(sess)
+}
+
+func (s *sessionRepository[Tx]) Delete(sess Session) Executable[Tx] {
+	return s.delete(sess)
 }

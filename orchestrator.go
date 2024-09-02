@@ -6,8 +6,8 @@ import (
 )
 
 type Orchestrator[Tx TxContext] interface {
-	Orchestrate(saga Saga[Tx], packet messagePacket) error
-	StartSaga(saga Saga[Tx], sessionArgs map[string]interface{}) error
+	Orchestrate(saga Saga[Session, Tx], packet messagePacket) error
+	StartSaga(saga Saga[Session, Tx], sessionArgs map[string]interface{}) error
 }
 
 func NewOrchestrator[Tx TxContext](uowFactory UnitOfWorkFactory[Tx]) Orchestrator[Tx] {
@@ -20,7 +20,7 @@ type orchestrator[Tx TxContext] struct {
 	uowFactory UnitOfWorkFactory[Tx]
 }
 
-func (o *orchestrator[Tx]) StartSaga(saga Saga[Tx], sessionArgs map[string]interface{}) error {
+func (o *orchestrator[Tx]) StartSaga(saga Saga[Session, Tx], sessionArgs map[string]interface{}) error {
 	var uow *UnitOfWork[Tx]
 	var err error
 
@@ -150,7 +150,7 @@ func (o *orchestrator[Tx]) stepBackwardAndCompensate(session Session, curStep St
 	return nil
 }
 
-func (o *orchestrator[Tx]) Orchestrate(saga Saga[Tx], packet messagePacket) error {
+func (o *orchestrator[Tx]) Orchestrate(saga Saga[Session, Tx], packet messagePacket) error {
 	var uow *UnitOfWork[Tx]
 	var err error
 
@@ -168,8 +168,8 @@ func (o *orchestrator[Tx]) Orchestrate(saga Saga[Tx], packet messagePacket) erro
 		return errors.New("session is already completed or failed")
 	}
 
-	currentStep := saga.Definition().FindStep(sagaSession.CurrentStep())
-	if currentStep == nil {
+	currentStep := sagaSession.CurrentStep()
+	if saga.Definition().Exists(currentStep) == false {
 		return errors.New("session has no current step")
 	}
 

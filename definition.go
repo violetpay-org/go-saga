@@ -24,6 +24,16 @@ func (d Definition) FindStep(name string) Step {
 	return nil
 }
 
+func (d Definition) Exists(step Step) bool {
+	for _, s := range d.steps {
+		if s.Name() == step.Name() {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (d Definition) NextStep(step Step) Step {
 	for i, s := range d.steps {
 		if s.Name() == step.Name() {

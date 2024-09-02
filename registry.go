@@ -2,66 +2,26 @@ package saga
 
 import (
 	"errors"
-	"strings"
 	"sync"
 )
 
-type Saga[Tx TxContext] struct {
-	name       string
-	definition Definition
-	factory    SessionFactory
-	repository SessionRepository[Tx]
-}
-
-func NewSaga[Tx TxContext](name string, def Definition, factory SessionFactory) Saga[Tx] {
-	return Saga[Tx]{
-		name:       name,
-		definition: def,
-		factory:    factory,
-	}
-}
-
-func (s *Saga[Tx]) Name() string {
-	return s.name
-}
-
-func (s *Saga[Tx]) Definition() Definition {
-	return s.definition
-}
-
-func (s *Saga[Tx]) Repository() SessionRepository[Tx] {
-	return s.repository
-}
-
-func (s *Saga[Tx]) createSession(args map[string]interface{}) Session {
-	return s.factory(args)
-}
-
-func extractSagaName(sessid string) string {
-	return strings.Split(sessid, "-")[0]
-}
-
-func (s *Saga[Tx]) hasPublishedSaga(sessid string) bool {
-	sagaName := extractSagaName(sessid)
-	return s.name == sagaName
-}
-
 func NewRegistry[Tx TxContext](orchestrator Orchestrator[Tx]) *Registry[Tx] {
 	return &Registry[Tx]{
-		sagas:        make([]Saga[Tx], 0),
+		sagas:        make([]Saga[Session, Tx], 0),
 		mutex:        sync.Mutex{},
 		orchestrator: orchestrator,
 	}
 }
 
-func (r *Registry[Tx]) RegisterSaga(saga Saga[Tx]) {
+func RegisterSagaTo[S Session, Tx TxContext](r *Registry[Tx], s Saga[S, Tx]) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.sagas = append(r.sagas, saga)
+
+	r.sagas = append(r.sagas, convertSaga(s))
 }
 
 type Registry[Tx TxContext] struct {
-	sagas        []Saga[Tx]
+	sagas        []Saga[Session, Tx]
 	mutex        sync.Mutex
 	orchestrator Orchestrator[Tx]
 }
@@ -98,7 +58,7 @@ func (r *Registry[Tx]) StartSaga(sagaName string, sessionArgs map[string]interfa
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	var target *Saga[Tx]
+	var target *Saga[Session, Tx]
 	for _, s := range r.sagas {
 		if s.Name() == sagaName {
 			target = &s
