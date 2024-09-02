@@ -16,28 +16,32 @@ type Step interface {
 
 func newRemoteStep[Tx TxContext](name string, endpoint Endpoint[Tx]) remoteStep[Tx] {
 	return remoteStep[Tx]{
-		name: name,
-
-		invocation: newRemoteInvocationAction(endpoint),
-		retry:      false,
+		name:           name,
+		invocation:     newRemoteInvocationAction(endpoint),
+		invokeEndpoint: endpoint,
+		retry:          false,
 	}
 }
 
 func newRemoteStepWithCompensation[Tx TxContext](step remoteStep[Tx], endpoint Endpoint[Tx]) remoteStep[Tx] {
 	return remoteStep[Tx]{
-		name:         step.name,
-		invocation:   step.invocation,
-		compensation: newRemoteCompensationAction(endpoint),
-		retry:        step.retry,
+		name:           step.name,
+		invocation:     step.invocation,
+		invokeEndpoint: step.invokeEndpoint,
+		compensation:   newRemoteCompensationAction(endpoint),
+		compEndpoint:   endpoint,
+		retry:          step.retry,
 	}
 }
 
 func newRemoteStepWithRetry[Tx TxContext](step remoteStep[Tx]) remoteStep[Tx] {
 	return remoteStep[Tx]{
-		name:         step.name,
-		invocation:   step.invocation,
-		compensation: step.compensation,
-		retry:        true,
+		name:           step.name,
+		invocation:     step.invocation,
+		invokeEndpoint: step.invokeEndpoint,
+		compensation:   step.compensation,
+		compEndpoint:   step.compEndpoint,
+		retry:          true,
 	}
 }
 
@@ -95,26 +99,31 @@ func newLocalStep[Tx TxContext](name string, endpoint LocalEndpoint[Tx]) localSt
 	return localStep[Tx]{
 		name: name,
 
-		invocation: newLocalInvokeAction(endpoint),
-		retry:      false,
+		invocation:     newLocalInvokeAction(endpoint),
+		invokeEndpoint: endpoint,
+		retry:          false,
 	}
 }
 
 func newLocalStepWithCompensation[Tx TxContext](step localStep[Tx], endpoint LocalEndpoint[Tx]) localStep[Tx] {
 	return localStep[Tx]{
-		name:         step.name,
-		invocation:   step.invocation,
-		compensation: newLocalCompensateAction(endpoint),
-		retry:        step.retry,
+		name:           step.name,
+		invocation:     step.invocation,
+		invokeEndpoint: step.invokeEndpoint,
+		compensation:   newLocalCompensateAction(endpoint),
+		compEndpoint:   endpoint,
+		retry:          step.retry,
 	}
 }
 
 func newLocalStepWithRetry[Tx TxContext](step localStep[Tx]) localStep[Tx] {
 	return localStep[Tx]{
-		name:         step.name,
-		invocation:   step.invocation,
-		compensation: step.compensation,
-		retry:        true,
+		name:           step.name,
+		invocation:     step.invocation,
+		invokeEndpoint: step.invokeEndpoint,
+		compensation:   step.compensation,
+		compEndpoint:   step.compEndpoint,
+		retry:          true,
 	}
 }
 
