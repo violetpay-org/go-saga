@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/violetpay-org/go-saga"
+	"sync"
 	"time"
 )
 
@@ -44,22 +45,21 @@ func (m *ExampleMessage) MarshalJSON() ([]byte, error) {
 }
 
 func NewExampleMessageRepository() *ExampleMessageRepository {
-	return &ExampleMessageRepository{
-		outbox:     make(map[string]saga.Message),
-		deadLetter: make(map[string]saga.Message),
-	}
+	return &ExampleMessageRepository{}
 }
 
 type ExampleMessageRepository struct {
-	outbox     map[string]saga.Message
-	deadLetter map[string]saga.Message
+	outbox     sync.Map
+	deadLetter sync.Map
 }
 
 func (e *ExampleMessageRepository) GetMessagesFromOutbox(batchSize int) ([]saga.Message, error) {
 	var outbox []saga.Message
-	for _, message := range e.outbox {
-		outbox = append(outbox, message)
-	}
+
+	e.outbox.Range(func(key, value interface{}) bool {
+		outbox = append(outbox, value.(saga.Message))
+		return true
+	})
 
 	if batchSize > len(outbox) {
 		return outbox, nil
@@ -70,9 +70,11 @@ func (e *ExampleMessageRepository) GetMessagesFromOutbox(batchSize int) ([]saga.
 
 func (e *ExampleMessageRepository) GetMessagesFromDeadLetter(batchSize int) ([]saga.Message, error) {
 	var deadLetter []saga.Message
-	for _, message := range e.deadLetter {
-		deadLetter = append(deadLetter, message)
-	}
+
+	e.outbox.Range(func(key, value interface{}) bool {
+		deadLetter = append(deadLetter, value.(saga.Message))
+		return true
+	})
 
 	if batchSize > len(deadLetter) {
 		return deadLetter, nil
@@ -83,7 +85,7 @@ func (e *ExampleMessageRepository) GetMessagesFromDeadLetter(batchSize int) ([]s
 
 func (e *ExampleMessageRepository) SaveMessage(message saga.Message) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
-		e.outbox[message.ID()] = message
+		e.outbox.Store(message.ID(), message)
 		return nil
 	}
 }
@@ -99,23 +101,23 @@ func (e *ExampleMessageRepository) SaveMessages(messages []saga.Message) saga.Ex
 
 func (e *ExampleMessageRepository) SaveDeadLetter(message saga.Message) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
-		e.deadLetter[message.ID()] = message
+		e.deadLetter.Store(message.ID(), message)
 		return nil
 	}
 }
 
-func (e *ExampleMessageRepository) SaveDeadLetters(message []saga.Message) saga.Executable[ExampleTxContext] {
-	return func(ctx ExampleTxContext) error {
-		for _, msg := range message {
-			e.deadLetter[msg.ID()] = msg
-		}
-		return nil
+func (e *ExampleMessageRepository) SaveDeadLetters(messages []saga.Message) saga.Executable[ExampleTxContext] {
+	executables := make([]saga.Executable[ExampleTxContext], 0)
+	for _, msg := range messages {
+		executables = append(executables, e.SaveDeadLetter(msg))
 	}
+
+	return saga.CombineExecutables(executables...)
 }
 
 func (e *ExampleMessageRepository) DeleteMessage(message saga.Message) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
-		delete(e.outbox, message.ID())
+		e.outbox.Delete(message.ID())
 		return nil
 	}
 }
@@ -131,7 +133,7 @@ func (e *ExampleMessageRepository) DeleteMessages(messages []saga.Message) saga.
 
 func (e *ExampleMessageRepository) DeleteDeadLetter(message saga.Message) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
-		delete(e.deadLetter, message.ID())
+		e.deadLetter.Delete(message.ID())
 		return nil
 	}
 }

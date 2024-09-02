@@ -83,6 +83,64 @@ func (o *orchestrator[Tx]) StartSaga(saga Saga[Session, Tx], sessionArgs map[str
 	return err
 }
 
+func (o *orchestrator[Tx]) Orchestrate(saga Saga[Session, Tx], packet messagePacket) error {
+	var uow *UnitOfWork[Tx]
+	var err error
+
+	origin := packet.Origin()
+	if origin == "" {
+		return errors.New("message origin is empty")
+	}
+
+	sagaSession, err := saga.Repository().Load(packet.Payload().SessionID())
+	if err != nil {
+		return err
+	}
+
+	if sagaSession.State() == StateCompleted || sagaSession.State() == StateFailed {
+		return errors.New("session is already completed or failed")
+	}
+
+	currentStep := sagaSession.CurrentStep()
+	if saga.Definition().Exists(currentStep) == false {
+		return errors.New("session has no current step")
+	}
+
+	uow, err = o.uowFactory(context.Background())
+	if err != nil {
+		return err
+	}
+
+	if sagaSession.State() != StateIsCompensating &&
+		sagaSession.State() != StateCompleted &&
+		sagaSession.State() != StateFailed {
+		// If the session is not compensating, completed, or failed, then it is in forward direction.
+		err = o.handleInvocationResponse(sagaSession, origin, packet.Payload(), currentStep, saga.Definition(), uow)
+	} else if sagaSession.State() == StateIsCompensating {
+		// If the session is compensating, then it is in backward direction.
+		err = o.handleCompensationResponse(sagaSession, origin, packet.Payload(), currentStep, saga.Definition(), uow)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	saver := saga.Repository().Save(sagaSession)
+	err = uow.AddWorkUnit(saver)
+	if err != nil {
+		return err
+	}
+
+	err = uow.Commit()
+	if err != nil {
+		return err
+	}
+
+	log.Print("Committed orchestration")
+
+	return nil
+}
+
 func (o *orchestrator[Tx]) invokeStep(session Session, curStep Step, uow *UnitOfWork[Tx]) error {
 	var cmd Executable[Tx]
 	var err error
@@ -137,7 +195,7 @@ func (o *orchestrator[Tx]) stepForwardAndInvoke(session Session, curStep Step, d
 		}
 
 		log.Print("Done")
-
+		// TODO: 마지막 Step에서 Invoke한 경우 함수가 종료되므로 메세지 두번 소비해야 최종 처리됨.
 		return nil
 	}
 
@@ -177,66 +235,6 @@ func (o *orchestrator[Tx]) stepBackwardAndCompensate(session Session, curStep St
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (o *orchestrator[Tx]) Orchestrate(saga Saga[Session, Tx], packet messagePacket) error {
-	var uow *UnitOfWork[Tx]
-	var err error
-
-	origin := packet.Origin()
-	if origin == "" {
-		return errors.New("message origin is empty")
-	}
-
-	sagaSession, err := saga.Repository().Load(packet.Payload().SessionID())
-	if err != nil {
-		return err
-	}
-
-	if sagaSession.State() == StateCompleted || sagaSession.State() == StateFailed {
-		return errors.New("session is already completed or failed")
-	}
-
-	currentStep := sagaSession.CurrentStep()
-	if saga.Definition().Exists(currentStep) == false {
-		return errors.New("session has no current step")
-	}
-
-	uow, err = o.uowFactory(context.Background())
-	if err != nil {
-		return err
-	}
-
-	if sagaSession.State() != StateIsCompensating &&
-		sagaSession.State() != StateCompleted &&
-		sagaSession.State() != StateFailed {
-		// If the session is not compensating, completed, or failed, then it is in forward direction.
-		err = o.handleInvocationResponse(sagaSession, origin, packet.Payload(), currentStep, saga.Definition(), uow)
-	} else if sagaSession.State() == StateIsCompensating {
-		// If the session is compensating, then it is in backward direction.
-		err = o.handleCompensationResponse(sagaSession, origin, packet.Payload(), currentStep, saga.Definition(), uow)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	log.Print("Saving session")
-
-	saver := saga.Repository().Save(sagaSession)
-	err = uow.AddWorkUnit(saver)
-	if err != nil {
-		return err
-	}
-
-	err = uow.Commit()
-	if err != nil {
-		return err
-	}
-
-	log.Print("Committed orchestration")
 
 	return nil
 }

@@ -2,8 +2,9 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/violetpay-org/go-saga"
-	"log"
+	"sync"
 )
 
 var exampleSessionRepository = NewExampleSessionRepository()
@@ -52,34 +53,35 @@ func (e *ExampleSession) SetState(state saga.State) {
 }
 
 func NewExampleSessionRepository() *ExampleSessionRepository {
-	return &ExampleSessionRepository{
-		sessions: make(map[string]ExampleSession),
-	}
+	return &ExampleSessionRepository{}
 }
 
 type ExampleSessionRepository struct {
-	sessions map[string]ExampleSession
+	sessions sync.Map
 }
 
 func (e *ExampleSessionRepository) Load(id string) (*ExampleSession, error) {
-	sess, ok := e.sessions[id]
+	sess, ok := e.sessions.Load(id)
 	if !ok {
 		return nil, errors.New("session not found")
 	}
-	return &sess, nil
+
+	session := sess.(ExampleSession)
+
+	return &session, nil
 }
 
 func (e *ExampleSessionRepository) Save(sess *ExampleSession) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
-		e.sessions[sess.ID()] = *sess
+		fmt.Println("Saving session", sess.ID(), sess.State(), sess.IsPending(), sess.currentStep.Name())
+		e.sessions.Store(sess.ID(), *sess)
 		return nil
 	}
 }
 
 func (e *ExampleSessionRepository) Delete(sess *ExampleSession) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
-		log.Print("Deleting session", sess.ID())
-		delete(e.sessions, sess.ID())
+		e.sessions.Delete(sess.ID())
 		return nil
 	}
 }
