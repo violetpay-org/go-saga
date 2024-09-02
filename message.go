@@ -20,6 +20,15 @@ type Message interface {
 	MarshalJSON() ([]byte, error)
 }
 
+func NewAbstractMessage(id, sessionID, trigger string) AbstractMessage {
+	return AbstractMessage{
+		id:        id,
+		sessionID: sessionID,
+		trigger:   trigger,
+		createdAt: time.Now(),
+	}
+}
+
 // AbstractMessage is a value object that represents a message.
 // It contains the common fields of a message.
 // If you want to create a new message, you should embed this struct.
