@@ -8,10 +8,6 @@ import (
 	"sync/atomic"
 )
 
-type BatchJob interface {
-	Execute() error
-}
-
 type Relayer[Tx saga.TxContext] struct {
 	batchSize int
 	mutex     sync.Mutex

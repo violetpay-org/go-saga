@@ -48,6 +48,10 @@ func (s *Saga[S, Tx]) Repository() SessionRepository[S, Tx] {
 }
 
 func (s *Saga[S, Tx]) createSession(args map[string]interface{}) S {
+	if args["id"] == nil {
+		args["id"] = fmt.Sprintf("%s-%s", s.name, uuid.New().String())
+	}
+
 	return s.factory(args)
 }
 
