@@ -3,6 +3,7 @@ package saga
 import (
 	"context"
 	"errors"
+	"log"
 )
 
 //type MySQLTxContext struct {
@@ -63,6 +64,12 @@ func CombineExecutables[Tx TxContext](executables ...Executable[Tx]) Executable[
 
 type UnitOfWorkFactory[Tx TxContext] func(ctx context.Context) (*UnitOfWork[Tx], error)
 
+func NewUnitOfWorkFactory[Tx TxContext](handler TxHandler[Tx]) UnitOfWorkFactory[Tx] {
+	return func(ctx context.Context) (*UnitOfWork[Tx], error) {
+		return NewUnitOfWork[Tx](ctx, handler), nil
+	}
+}
+
 type UnitOfWork[Tx TxContext] struct {
 	handler  TxHandler[Tx]
 	unitChan chan Executable[Tx]
@@ -73,7 +80,7 @@ type UnitOfWork[Tx TxContext] struct {
 func NewUnitOfWork[Tx TxContext](ctx context.Context, handler TxHandler[Tx]) *UnitOfWork[Tx] {
 	return &UnitOfWork[Tx]{
 		handler:  handler,
-		unitChan: make(chan Executable[Tx]),
+		unitChan: make(chan Executable[Tx], 100),
 		ctx:      ctx,
 	}
 }
@@ -94,8 +101,8 @@ func (u *UnitOfWork[Tx]) commitExecutables(ctx Tx) error {
 
 	u.commited = true
 
-	backupChan := make(chan Executable[Tx])
-	errors := make(chan error)
+	backupChan := make(chan Executable[Tx], 100)
+	errors := make(chan error, 100)
 	defer close(errors)
 
 commitLoop:
@@ -122,10 +129,13 @@ commitLoop:
 	}
 
 	close(backupChan)
+
+	log.Print()
 	return nil
 }
 
 func (u *UnitOfWork[Tx]) Commit() error {
+	log.Print("Committing unit of work")
 	tx, err := u.handler.BeginTx(u.ctx)
 	defer u.handler.Rollback(tx)
 	if err != nil {
