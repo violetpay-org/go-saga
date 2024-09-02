@@ -71,7 +71,7 @@ type AbstractMessageRepository[Tx TxContext] interface {
 	DeleteMessage(message Message) Executable[Tx]
 	DeleteMessages(messages []Message) Executable[Tx]
 	DeleteDeadLetter(message Message) Executable[Tx]
-	DeleteDeadLetters(message Message) Executable[Tx]
+	DeleteDeadLetters(messages []Message) Executable[Tx]
 }
 
 type AbstractMessageLoadRepository interface {

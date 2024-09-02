@@ -86,7 +86,7 @@ func (m *mockAbstractMessageRepository) DeleteDeadLetter(message Message) Execut
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) DeleteDeadLetters(message Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) DeleteDeadLetters(messages []Message) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }
