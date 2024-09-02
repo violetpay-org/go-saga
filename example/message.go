@@ -12,14 +12,14 @@ var exampleCommandRepository = NewExampleMessageRepository()
 var exampleSuccessResponseRepository = NewExampleMessageRepository()
 var exampleFailureResponseRepository = NewExampleMessageRepository()
 
-func ExampleMessageConstructor(session saga.Session) saga.Message {
-	return &ExampleMessage{
+func ExampleMessageConstructor(session *ExampleSession) ExampleMessage {
+	return ExampleMessage{
 		AbstractMessage: saga.NewAbstractMessage(
 			uuid.New().String(),
 			session.ID(),
 			"Triggered by test",
 		),
-		exampleField: session.(*ExampleSession).exampleField,
+		exampleField: session.exampleField,
 	}
 }
 
@@ -28,7 +28,7 @@ type ExampleMessage struct {
 	exampleField string
 }
 
-func (m *ExampleMessage) MarshalJSON() ([]byte, error) {
+func (m ExampleMessage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ID           string    `json:"id"`
 		SessionID    string    `json:"sessionID"`

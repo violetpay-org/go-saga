@@ -5,7 +5,13 @@ import (
 	"time"
 )
 
-type MessageConstructor func(Session) Message
+type MessageConstructor[S Session, M Message] func(S) M
+
+func convertMessage[S Session, M Message](constructor MessageConstructor[S, M]) MessageConstructor[Session, Message] {
+	return func(s Session) Message {
+		return constructor(s.(S))
+	}
+}
 
 // Message is a value object.
 type Message interface {

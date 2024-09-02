@@ -2,32 +2,32 @@ package saga
 
 type Endpoint[Tx TxContext] struct {
 	commandChannel     ChannelName
-	commandConstructor MessageConstructor
+	commandConstructor MessageConstructor[Session, Message]
 	commandRepository  AbstractMessageRepository[Tx]
 
 	successResChannel          ChannelName
-	successResponseConstructor MessageConstructor
+	successResponseConstructor MessageConstructor[Session, Message]
 	failureResChannel          ChannelName
-	failureResponseConstructor MessageConstructor
+	failureResponseConstructor MessageConstructor[Session, Message]
 }
 
-func NewEndpoint[Tx TxContext](
+func NewEndpoint[S Session, M Message, Tx TxContext](
 	commandChannel ChannelName,
-	commandConstructor MessageConstructor,
+	commandConstructor MessageConstructor[S, M],
 	commandRepository AbstractMessageRepository[Tx],
 	successResChannel ChannelName,
-	successResponseConstructor MessageConstructor,
+	successResponseConstructor MessageConstructor[S, M],
 	failureResChannel ChannelName,
-	failureResponseConstructor MessageConstructor,
+	failureResponseConstructor MessageConstructor[S, M],
 ) Endpoint[Tx] {
 	return Endpoint[Tx]{
 		commandChannel:             commandChannel,
-		commandConstructor:         commandConstructor,
+		commandConstructor:         convertMessage(commandConstructor),
 		commandRepository:          commandRepository,
 		successResChannel:          successResChannel,
-		successResponseConstructor: successResponseConstructor,
+		successResponseConstructor: convertMessage(successResponseConstructor),
 		failureResChannel:          failureResChannel,
-		failureResponseConstructor: failureResponseConstructor,
+		failureResponseConstructor: convertMessage(failureResponseConstructor),
 	}
 }
 
@@ -35,7 +35,7 @@ func (e Endpoint[Tx]) CommandChannel() ChannelName {
 	return e.commandChannel
 }
 
-func (e Endpoint[Tx]) CommandConstructor() MessageConstructor {
+func (e Endpoint[Tx]) CommandConstructor() MessageConstructor[Session, Message] {
 	return e.commandConstructor
 }
 
@@ -47,7 +47,7 @@ func (e Endpoint[Tx]) SuccessResChannel() ChannelName {
 	return e.successResChannel
 }
 
-func (e Endpoint[Tx]) SuccessResponseConstructor() MessageConstructor {
+func (e Endpoint[Tx]) SuccessResponseConstructor() MessageConstructor[Session, Message] {
 	return e.successResponseConstructor
 }
 
@@ -55,7 +55,7 @@ func (e Endpoint[Tx]) FailureResChannel() ChannelName {
 	return e.failureResChannel
 }
 
-func (e Endpoint[Tx]) FailureResponseConstructor() MessageConstructor {
+func (e Endpoint[Tx]) FailureResponseConstructor() MessageConstructor[Session, Message] {
 	return e.failureResponseConstructor
 }
 
@@ -63,31 +63,31 @@ type ExecutablePreparer[Tx TxContext] func(Session) (Executable[Tx], error)
 
 type LocalEndpoint[Tx TxContext] struct {
 	successResChannel          ChannelName
-	successResponseConstructor MessageConstructor
+	successResponseConstructor MessageConstructor[Session, Message]
 	successResRepository       AbstractMessageRepository[Tx]
 
 	failureResChannel          ChannelName
-	failureResponseConstructor MessageConstructor
+	failureResponseConstructor MessageConstructor[Session, Message]
 	failureResRepository       AbstractMessageRepository[Tx]
 
 	handler ExecutablePreparer[Tx]
 }
 
-func NewLocalEndpoint[Tx TxContext](
+func NewLocalEndpoint[S Session, M Message, Tx TxContext](
 	successResChannel ChannelName,
-	successResponseConstructor MessageConstructor,
+	successResponseConstructor MessageConstructor[S, M],
 	successResRepository AbstractMessageRepository[Tx],
 	failureResChannel ChannelName,
-	failureResponseConstructor MessageConstructor,
+	failureResponseConstructor MessageConstructor[S, M],
 	failureResRepository AbstractMessageRepository[Tx],
 	handler ExecutablePreparer[Tx],
 ) LocalEndpoint[Tx] {
 	return LocalEndpoint[Tx]{
 		successResChannel:          successResChannel,
-		successResponseConstructor: successResponseConstructor,
+		successResponseConstructor: convertMessage(successResponseConstructor),
 		successResRepository:       successResRepository,
 		failureResChannel:          failureResChannel,
-		failureResponseConstructor: failureResponseConstructor,
+		failureResponseConstructor: convertMessage(failureResponseConstructor),
 		failureResRepository:       failureResRepository,
 		handler:                    handler,
 	}
@@ -97,7 +97,7 @@ func (e LocalEndpoint[Tx]) SuccessResChannel() ChannelName {
 	return e.successResChannel
 }
 
-func (e LocalEndpoint[Tx]) SuccessResponseConstructor() MessageConstructor {
+func (e LocalEndpoint[Tx]) SuccessResponseConstructor() MessageConstructor[Session, Message] {
 	return e.successResponseConstructor
 }
 
@@ -109,7 +109,7 @@ func (e LocalEndpoint[Tx]) FailureResChannel() ChannelName {
 	return e.failureResChannel
 }
 
-func (e LocalEndpoint[Tx]) FailureResponseConstructor() MessageConstructor {
+func (e LocalEndpoint[Tx]) FailureResponseConstructor() MessageConstructor[Session, Message] {
 	return e.failureResponseConstructor
 }
 
