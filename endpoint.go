@@ -11,14 +11,14 @@ type Endpoint[Tx TxContext] struct {
 	failureResponseConstructor MessageConstructor[Session, Message]
 }
 
-func NewEndpoint[S Session, M Message, Tx TxContext](
+func NewEndpoint[S Session, C Message, SRes Message, FRes Message, Tx TxContext](
 	commandChannel ChannelName,
-	commandConstructor MessageConstructor[S, M],
+	commandConstructor MessageConstructor[S, C],
 	commandRepository AbstractMessageRepository[Tx],
 	successResChannel ChannelName,
-	successResponseConstructor MessageConstructor[S, M],
+	successResponseConstructor MessageConstructor[S, SRes],
 	failureResChannel ChannelName,
-	failureResponseConstructor MessageConstructor[S, M],
+	failureResponseConstructor MessageConstructor[S, FRes],
 ) Endpoint[Tx] {
 	return Endpoint[Tx]{
 		commandChannel:             commandChannel,
@@ -73,12 +73,12 @@ type LocalEndpoint[Tx TxContext] struct {
 	handler ExecutablePreparer[Tx]
 }
 
-func NewLocalEndpoint[S Session, M Message, Tx TxContext](
+func NewLocalEndpoint[S Session, SRes Message, FRes Message, Tx TxContext](
 	successResChannel ChannelName,
-	successResponseConstructor MessageConstructor[S, M],
+	successResponseConstructor MessageConstructor[S, SRes],
 	successResRepository AbstractMessageRepository[Tx],
 	failureResChannel ChannelName,
-	failureResponseConstructor MessageConstructor[S, M],
+	failureResponseConstructor MessageConstructor[S, FRes],
 	failureResRepository AbstractMessageRepository[Tx],
 	handler ExecutablePreparer[Tx],
 ) LocalEndpoint[Tx] {
