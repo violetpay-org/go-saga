@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/violetpay-org/go-saga"
 	"sync"
-	"time"
 )
 
 var exampleCommandRepository = NewExampleMessageRepository()
@@ -26,22 +24,6 @@ func ExampleMessageConstructor(session *ExampleSession) ExampleMessage {
 type ExampleMessage struct {
 	saga.AbstractMessage
 	exampleField string
-}
-
-func (m ExampleMessage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		ID           string    `json:"id"`
-		SessionID    string    `json:"sessionID"`
-		Trigger      string    `json:"trigger"`
-		CreatedAt    time.Time `json:"createdAt"`
-		ExampleField string    `json:"exampleField"`
-	}{
-		ID:           m.ID(),
-		SessionID:    m.SessionID(),
-		Trigger:      m.Trigger(),
-		CreatedAt:    m.CreatedAt(),
-		ExampleField: m.exampleField,
-	})
 }
 
 func NewExampleMessageRepository() *ExampleMessageRepository {
@@ -71,7 +53,7 @@ func (e *ExampleMessageRepository) GetMessagesFromOutbox(batchSize int) ([]Examp
 func (e *ExampleMessageRepository) GetMessagesFromDeadLetter(batchSize int) ([]ExampleMessage, error) {
 	var deadLetter []ExampleMessage
 
-	e.outbox.Range(func(key, value interface{}) bool {
+	e.deadLetter.Range(func(key, value interface{}) bool {
 		deadLetter = append(deadLetter, value.(ExampleMessage))
 		return true
 	})
@@ -145,4 +127,9 @@ func (e *ExampleMessageRepository) DeleteDeadLetters(messages []ExampleMessage) 
 	}
 
 	return saga.CombineExecutables(executables...)
+}
+
+func (e *ExampleMessageRepository) clear() {
+	e.outbox = sync.Map{}
+	e.deadLetter = sync.Map{}
 }

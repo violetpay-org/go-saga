@@ -1,7 +1,6 @@
 package saga
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -19,11 +18,6 @@ type Message interface {
 	SessionID() string
 	Trigger() string
 	CreatedAt() time.Time
-
-	// MarshalJSON returns the JSON encoding of the message.
-	//
-	// It must be implemented by the message struct that embeds the AbstractMessage.
-	MarshalJSON() ([]byte, error)
 }
 
 func NewAbstractMessage(id, sessionID, trigger string) AbstractMessage {
@@ -35,10 +29,18 @@ func NewAbstractMessage(id, sessionID, trigger string) AbstractMessage {
 	}
 }
 
+func NewAbstractMessageWithTime(id, sessionID, trigger string, createdAt time.Time) AbstractMessage {
+	return AbstractMessage{
+		id:        id,
+		sessionID: sessionID,
+		trigger:   trigger,
+		createdAt: createdAt,
+	}
+}
+
 // AbstractMessage is a value object that represents a message.
 // It contains the common fields of a message.
 // If you want to create a new message, you should embed this struct.
-// and must implement the MarshalJSON method.
 type AbstractMessage struct {
 	id        string
 	sessionID string
@@ -60,21 +62,6 @@ func (m AbstractMessage) Trigger() string {
 
 func (m AbstractMessage) CreatedAt() time.Time {
 	return m.createdAt
-
-}
-
-func (m AbstractMessage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		ID        string    `json:"id"`
-		SessionID string    `json:"sessionID"`
-		Trigger   string    `json:"trigger"`
-		CreatedAt time.Time `json:"createdAt"`
-	}{
-		ID:        m.id,
-		SessionID: m.sessionID,
-		Trigger:   m.trigger,
-		CreatedAt: m.createdAt,
-	})
 }
 
 func ConvertMessageRepository[M Message, Tx TxContext](repository AbstractMessageRepository[M, Tx]) AbstractMessageRepository[Message, Tx] {
