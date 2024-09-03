@@ -1,13 +1,12 @@
 package messageRelayer
 
 import (
-	"errors"
 	"github.com/violetpay-org/go-saga"
 	"sync"
 )
 
 type ChannelRegistry[Tx saga.TxContext] interface {
-	RegisterChannel(channel Channel[Tx]) error
+	Register(channel Channel[Tx]) error
 
 	// Range calls f sequentially for each key and value present in the map. If f returns false, range stops the iteration.
 	Range(func(name saga.ChannelName, channel Channel[Tx]) bool)
@@ -56,9 +55,9 @@ func NewChannelRegistry[Tx saga.TxContext]() ChannelRegistry[Tx] {
 	return &channelRegistry[Tx]{}
 }
 
-func (r *channelRegistry[Tx]) RegisterChannel(channel Channel[Tx]) error {
+func (r *channelRegistry[Tx]) Register(channel Channel[Tx]) error {
 	if _, ok := r.channels.Load(channel.Name()); ok {
-		return errors.New("channel already exists")
+		return saga.ErrChannelAlreadyRegistered
 	}
 	r.channels.Store(channel.Name(), channel)
 	return nil

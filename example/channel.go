@@ -35,10 +35,10 @@ var channelRegistry = messageRelayer.NewChannelRegistry[ExampleTxContext]()
 
 func init() {
 	var err error
-	err = channelRegistry.RegisterChannel(ExampleSuccessChannel)
-	err = channelRegistry.RegisterChannel(ExampleFailureChannel)
-	err = channelRegistry.RegisterChannel(ExampleCommandChannel)
-	err = channelRegistry.RegisterChannel(AlwaysFailCommandChannel)
+	err = channelRegistry.Register(ExampleSuccessChannel)
+	err = channelRegistry.Register(ExampleFailureChannel)
+	err = channelRegistry.Register(ExampleCommandChannel)
+	err = channelRegistry.Register(AlwaysFailCommandChannel)
 
 	if err != nil {
 		panic(err)
