@@ -11,6 +11,10 @@ func newDefinition(steps []Step) Definition {
 }
 
 func (d Definition) FirstStep() Step {
+	if len(d.steps) == 0 {
+		return nil
+	}
+
 	return d.steps[0]
 }
 

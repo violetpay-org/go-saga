@@ -69,10 +69,6 @@ func (b *StepBuilder[Tx]) Build() Definition {
 	}
 	defer b.cleanUp()
 
-	if len(b.steps) == 0 {
-		panic("No steps defined, but trying to build a definition")
-	}
-
 	return newDefinition(b.steps)
 }
 
