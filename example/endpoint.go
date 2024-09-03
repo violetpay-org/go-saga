@@ -4,10 +4,9 @@ import "github.com/violetpay-org/go-saga"
 
 var ExampleEndpoint = saga.NewEndpoint[
 	*ExampleSession,
-	ExampleMessage,
-	ExampleMessage,
-	ExampleMessage,
-	ExampleTxContext](
+	ExampleMessage, ExampleMessage, ExampleMessage,
+	ExampleTxContext,
+](
 	ExampleCommandChannelName,
 	ExampleMessageConstructor,
 	exampleCommandRepository,

@@ -195,7 +195,6 @@ func (o *orchestrator[Tx]) stepForwardAndInvoke(session Session, curStep Step, d
 		}
 
 		log.Print("Done")
-		// TODO: 마지막 Step에서 Invoke한 경우 함수가 종료되므로 메세지 두번 소비해야 최종 처리됨.
 		return nil
 	}
 

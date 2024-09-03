@@ -8,9 +8,10 @@ import (
 )
 
 var exampleSessionRepository = NewExampleSessionRepository()
-var exampleSessionFactory = func(data map[string]interface{}) *ExampleSession {
+var exampleSessionFactory saga.SessionFactory[*ExampleSession] = func(data map[string]interface{}) *ExampleSession {
 	return &ExampleSession{
-		id: data["id"].(string),
+		id:           data["id"].(string),
+		exampleField: "test",
 	}
 }
 
@@ -28,7 +29,6 @@ func (e *ExampleSession) ID() string {
 
 func (e *ExampleSession) CurrentStep() saga.Step {
 	return e.currentStep
-
 }
 
 func (e *ExampleSession) UpdateCurrentStep(step saga.Step) error {
