@@ -247,7 +247,7 @@ deleteDeadLetters:
 }
 
 func (r *Relayer[Tx]) publishFromOutbox(remaining *atomic.Int64) (published *messagesByChannel, failed *messagesByChannel) {
-	messageFunc := func(repo saga.AbstractMessageLoadRepository, batchSize int) ([]saga.Message, error) {
+	messageFunc := func(repo saga.AbstractMessageLoadRepository[saga.Message], batchSize int) ([]saga.Message, error) {
 		return repo.GetMessagesFromOutbox(batchSize)
 	}
 
@@ -256,7 +256,7 @@ func (r *Relayer[Tx]) publishFromOutbox(remaining *atomic.Int64) (published *mes
 }
 
 func (r *Relayer[Tx]) publishFromDeadLetters(remaining *atomic.Int64) (published *messagesByChannel, failed *messagesByChannel) {
-	messageFunc := func(repo saga.AbstractMessageLoadRepository, batchSize int) ([]saga.Message, error) {
+	messageFunc := func(repo saga.AbstractMessageLoadRepository[saga.Message], batchSize int) ([]saga.Message, error) {
 		return repo.GetMessagesFromDeadLetter(batchSize)
 	}
 
@@ -264,7 +264,7 @@ func (r *Relayer[Tx]) publishFromDeadLetters(remaining *atomic.Int64) (published
 	return
 }
 
-func (r *Relayer[Tx]) publish(remaining *atomic.Int64, messageFunc func(repo saga.AbstractMessageLoadRepository, batchSize int) ([]saga.Message, error)) (published *messagesByChannel, failed *messagesByChannel) {
+func (r *Relayer[Tx]) publish(remaining *atomic.Int64, messageFunc func(repo saga.AbstractMessageLoadRepository[saga.Message], batchSize int) ([]saga.Message, error)) (published *messagesByChannel, failed *messagesByChannel) {
 	published = newMessagesByChannel(r.batchSize)
 	failed = newMessagesByChannel(r.batchSize)
 

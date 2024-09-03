@@ -11,9 +11,9 @@ const (
 	ExampleCommandChannelName = "ExampleCommandChannel"
 )
 
-var ExampleSuccessChannel = saga.NewChannel[ExampleTxContext](ExampleSuccessChannelName, registry, exampleSuccessResponseRepository)
-var ExampleFailureChannel = saga.NewChannel[ExampleTxContext](ExampleFailureChannelName, registry, exampleFailureResponseRepository) // repo ?
-var ExampleCommandChannel = messageRelayer.NewChannel[ExampleTxContext](
+var ExampleSuccessChannel = saga.NewChannel[ExampleMessage, ExampleTxContext](ExampleSuccessChannelName, registry, exampleSuccessResponseRepository)
+var ExampleFailureChannel = saga.NewChannel[ExampleMessage, ExampleTxContext](ExampleFailureChannelName, registry, exampleFailureResponseRepository) // repo ?
+var ExampleCommandChannel = messageRelayer.NewChannel[ExampleMessage, ExampleTxContext](
 	ExampleCommandChannelName,
 	registry,
 	exampleCommandRepository,

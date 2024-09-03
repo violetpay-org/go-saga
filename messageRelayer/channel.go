@@ -19,18 +19,20 @@ type ChannelRegistry[Tx saga.TxContext] interface {
 	Has(name saga.ChannelName) bool
 }
 
+// Channel is a channel that can send AbstractMessage to *Somewhere*.
+// Relayer will get messages from outbox repository (messageRepository), and uses this channel to send message to the other remote service.
 type Channel[Tx saga.TxContext] interface {
 	saga.AbstractChannel[Tx]
 }
 
-func NewChannel[Tx saga.TxContext](name saga.ChannelName, registry *saga.Registry[Tx], repository saga.AbstractMessageRepository[Tx], send func(message saga.Message) error) Channel[Tx] {
-	return &channel[Tx]{name: name, registry: registry, repository: repository, send: send}
+func NewChannel[M saga.Message, Tx saga.TxContext](name saga.ChannelName, registry *saga.Registry[Tx], repository saga.AbstractMessageRepository[M, Tx], send func(message saga.Message) error) Channel[Tx] {
+	return &channel[Tx]{name: name, registry: registry, repository: saga.ConvertMessageRepository(repository), send: send}
 }
 
 type channel[Tx saga.TxContext] struct {
 	name       saga.ChannelName
 	registry   *saga.Registry[Tx]
-	repository saga.AbstractMessageRepository[Tx]
+	repository saga.AbstractMessageRepository[saga.Message, Tx]
 	send       func(message saga.Message) error
 }
 
@@ -42,7 +44,7 @@ func (c *channel[Tx]) Send(message saga.Message) error {
 	return c.send(message)
 }
 
-func (c *channel[Tx]) Repository() saga.AbstractMessageRepository[Tx] {
+func (c *channel[Tx]) Repository() saga.AbstractMessageRepository[saga.Message, Tx] {
 	return c.repository
 }
 

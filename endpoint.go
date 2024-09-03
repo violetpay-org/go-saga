@@ -3,7 +3,7 @@ package saga
 type Endpoint[Tx TxContext] struct {
 	commandChannel     ChannelName
 	commandConstructor MessageConstructor[Session, Message]
-	commandRepository  AbstractMessageRepository[Tx]
+	commandRepository  AbstractMessageRepository[Message, Tx]
 
 	successResChannel          ChannelName
 	successResponseConstructor MessageConstructor[Session, Message]
@@ -14,7 +14,7 @@ type Endpoint[Tx TxContext] struct {
 func NewEndpoint[S Session, C Message, SRes Message, FRes Message, Tx TxContext](
 	commandChannel ChannelName,
 	commandConstructor MessageConstructor[S, C],
-	commandRepository AbstractMessageRepository[Tx],
+	commandRepository AbstractMessageRepository[C, Tx],
 	successResChannel ChannelName,
 	successResponseConstructor MessageConstructor[S, SRes],
 	failureResChannel ChannelName,
@@ -23,7 +23,7 @@ func NewEndpoint[S Session, C Message, SRes Message, FRes Message, Tx TxContext]
 	return Endpoint[Tx]{
 		commandChannel:             commandChannel,
 		commandConstructor:         convertMessage(commandConstructor),
-		commandRepository:          commandRepository,
+		commandRepository:          ConvertMessageRepository(commandRepository),
 		successResChannel:          successResChannel,
 		successResponseConstructor: convertMessage(successResponseConstructor),
 		failureResChannel:          failureResChannel,
@@ -39,7 +39,7 @@ func (e Endpoint[Tx]) CommandConstructor() MessageConstructor[Session, Message] 
 	return e.commandConstructor
 }
 
-func (e Endpoint[Tx]) CommandRepository() AbstractMessageRepository[Tx] {
+func (e Endpoint[Tx]) CommandRepository() AbstractMessageRepository[Message, Tx] {
 	return e.commandRepository
 }
 
@@ -64,11 +64,11 @@ type ExecutablePreparer[Tx TxContext] func(Session) (Executable[Tx], error)
 type LocalEndpoint[Tx TxContext] struct {
 	successResChannel          ChannelName
 	successResponseConstructor MessageConstructor[Session, Message]
-	successResRepository       AbstractMessageRepository[Tx]
+	successResRepository       AbstractMessageRepository[Message, Tx]
 
 	failureResChannel          ChannelName
 	failureResponseConstructor MessageConstructor[Session, Message]
-	failureResRepository       AbstractMessageRepository[Tx]
+	failureResRepository       AbstractMessageRepository[Message, Tx]
 
 	handler ExecutablePreparer[Tx]
 }
@@ -76,19 +76,19 @@ type LocalEndpoint[Tx TxContext] struct {
 func NewLocalEndpoint[S Session, SRes Message, FRes Message, Tx TxContext](
 	successResChannel ChannelName,
 	successResponseConstructor MessageConstructor[S, SRes],
-	successResRepository AbstractMessageRepository[Tx],
+	successResRepository AbstractMessageRepository[SRes, Tx],
 	failureResChannel ChannelName,
 	failureResponseConstructor MessageConstructor[S, FRes],
-	failureResRepository AbstractMessageRepository[Tx],
+	failureResRepository AbstractMessageRepository[FRes, Tx],
 	handler ExecutablePreparer[Tx],
 ) LocalEndpoint[Tx] {
 	return LocalEndpoint[Tx]{
 		successResChannel:          successResChannel,
 		successResponseConstructor: convertMessage(successResponseConstructor),
-		successResRepository:       successResRepository,
+		successResRepository:       ConvertMessageRepository(successResRepository),
 		failureResChannel:          failureResChannel,
 		failureResponseConstructor: convertMessage(failureResponseConstructor),
-		failureResRepository:       failureResRepository,
+		failureResRepository:       ConvertMessageRepository(failureResRepository),
 		handler:                    handler,
 	}
 }
@@ -101,7 +101,7 @@ func (e LocalEndpoint[Tx]) SuccessResponseConstructor() MessageConstructor[Sessi
 	return e.successResponseConstructor
 }
 
-func (e LocalEndpoint[Tx]) SuccessResRepository() AbstractMessageRepository[Tx] {
+func (e LocalEndpoint[Tx]) SuccessResRepository() AbstractMessageRepository[Message, Tx] {
 	return e.successResRepository
 }
 
@@ -113,7 +113,7 @@ func (e LocalEndpoint[Tx]) FailureResponseConstructor() MessageConstructor[Sessi
 	return e.failureResponseConstructor
 }
 
-func (e LocalEndpoint[Tx]) FailureResRepository() AbstractMessageRepository[Tx] {
+func (e LocalEndpoint[Tx]) FailureResRepository() AbstractMessageRepository[Message, Tx] {
 	return e.failureResRepository
 }
 

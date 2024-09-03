@@ -9,7 +9,7 @@ type AbstractChannel[Tx TxContext] interface {
 	// Send sends a AbstractMessage to the channel
 	Send(message Message) error
 
-	Repository() AbstractMessageRepository[Tx]
+	Repository() AbstractMessageRepository[Message, Tx]
 }
 
 // parseMessageToPacket parses the AbstractMessage to a AbstractMessage packet
@@ -22,14 +22,14 @@ type Channel[Tx TxContext] interface {
 	AbstractChannel[Tx]
 }
 
-func NewChannel[Tx TxContext](name string, registry *Registry[Tx], repository AbstractMessageRepository[Tx]) Channel[Tx] {
-	return &channel[Tx]{name: ChannelName(name), registry: registry, repository: repository}
+func NewChannel[M Message, Tx TxContext](name string, registry *Registry[Tx], repository AbstractMessageRepository[M, Tx]) Channel[Tx] {
+	return &channel[Tx]{name: ChannelName(name), registry: registry, repository: ConvertMessageRepository(repository)}
 }
 
 type channel[Tx TxContext] struct {
 	name       ChannelName
 	registry   *Registry[Tx]
-	repository AbstractMessageRepository[Tx]
+	repository AbstractMessageRepository[Message, Tx]
 }
 
 func (c *channel[Tx]) Name() ChannelName {
@@ -41,6 +41,6 @@ func (c *channel[Tx]) Send(message Message) error {
 	return c.registry.consumeMessage(packet)
 }
 
-func (c *channel[Tx]) Repository() AbstractMessageRepository[Tx] {
+func (c *channel[Tx]) Repository() AbstractMessageRepository[Message, Tx] {
 	return c.repository
 }

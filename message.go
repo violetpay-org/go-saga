@@ -77,21 +77,145 @@ func (m AbstractMessage) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type AbstractMessageRepository[Tx TxContext] interface {
-	AbstractMessageLoadRepository
-	SaveMessage(message Message) Executable[Tx]
-	SaveMessages(messages []Message) Executable[Tx]
-	SaveDeadLetter(message Message) Executable[Tx]
-	SaveDeadLetters(message []Message) Executable[Tx]
-	DeleteMessage(message Message) Executable[Tx]
-	DeleteMessages(messages []Message) Executable[Tx]
-	DeleteDeadLetter(message Message) Executable[Tx]
-	DeleteDeadLetters(messages []Message) Executable[Tx]
+func ConvertMessageRepository[M Message, Tx TxContext](repository AbstractMessageRepository[M, Tx]) AbstractMessageRepository[Message, Tx] {
+	getMessagesFromOutbox := func(batchSize int) ([]Message, error) {
+		ms, err := repository.GetMessagesFromOutbox(batchSize)
+		if err != nil {
+			return nil, err
+		}
+		var messages []Message
+		for _, m := range ms {
+			messages = append(messages, m)
+		}
+		return messages, nil
+	}
+
+	getMessagesFromDeadLetter := func(batchSize int) ([]Message, error) {
+		ms, err := repository.GetMessagesFromDeadLetter(batchSize)
+		if err != nil {
+			return nil, err
+		}
+		var messages []Message
+		for _, m := range ms {
+			messages = append(messages, m)
+		}
+		return messages, nil
+	}
+
+	saveMessages := func(messages []Message) Executable[Tx] {
+		var ms []M
+		for _, m := range messages {
+			ms = append(ms, m.(M))
+		}
+		return repository.SaveMessages(ms)
+	}
+
+	saveDeadLetters := func(messages []Message) Executable[Tx] {
+		var ms []M
+		for _, m := range messages {
+			ms = append(ms, m.(M))
+		}
+		return repository.SaveDeadLetters(ms)
+	}
+
+	deleteMessages := func(messages []Message) Executable[Tx] {
+		var ms []M
+		for _, m := range messages {
+			ms = append(ms, m.(M))
+		}
+		return repository.DeleteMessages(ms)
+	}
+
+	deleteDeadLetters := func(messages []Message) Executable[Tx] {
+		var ms []M
+		for _, m := range messages {
+			ms = append(ms, m.(M))
+		}
+		return repository.DeleteDeadLetters(ms)
+	}
+
+	return messageRepository[Tx]{
+		saveMessage:               func(m Message) Executable[Tx] { return repository.SaveMessage(m.(M)) },
+		saveMessages:              saveMessages,
+		saveDeadLetter:            func(m Message) Executable[Tx] { return repository.SaveDeadLetter(m.(M)) },
+		saveDeadLetters:           saveDeadLetters,
+		deleteMessage:             func(m Message) Executable[Tx] { return repository.DeleteMessage(m.(M)) },
+		deleteMessages:            deleteMessages,
+		deleteDeadLetter:          func(m Message) Executable[Tx] { return repository.DeleteDeadLetter(m.(M)) },
+		deleteDeadLetters:         deleteDeadLetters,
+		getMessagesFromOutbox:     getMessagesFromOutbox,
+		getMessagesFromDeadLetter: getMessagesFromDeadLetter,
+	}
 }
 
-type AbstractMessageLoadRepository interface {
-	GetMessagesFromOutbox(batchSize int) ([]Message, error)
-	GetMessagesFromDeadLetter(batchSize int) ([]Message, error)
+type AbstractMessageRepository[M Message, Tx TxContext] interface {
+	AbstractMessageLoadRepository[M]
+	SaveMessage(message M) Executable[Tx]
+	SaveMessages(messages []M) Executable[Tx]
+	SaveDeadLetter(message M) Executable[Tx]
+	SaveDeadLetters(message []M) Executable[Tx]
+	DeleteMessage(message M) Executable[Tx]
+	DeleteMessages(messages []M) Executable[Tx]
+	DeleteDeadLetter(message M) Executable[Tx]
+	DeleteDeadLetters(messages []M) Executable[Tx]
+}
+
+type AbstractMessageLoadRepository[M Message] interface {
+	GetMessagesFromOutbox(batchSize int) ([]M, error)
+	GetMessagesFromDeadLetter(batchSize int) ([]M, error)
+}
+
+type messageRepository[Tx TxContext] struct {
+	saveMessage               func(Message) Executable[Tx]
+	saveMessages              func([]Message) Executable[Tx]
+	saveDeadLetter            func(Message) Executable[Tx]
+	saveDeadLetters           func([]Message) Executable[Tx]
+	deleteMessage             func(Message) Executable[Tx]
+	deleteMessages            func([]Message) Executable[Tx]
+	deleteDeadLetter          func(Message) Executable[Tx]
+	deleteDeadLetters         func([]Message) Executable[Tx]
+	getMessagesFromOutbox     func(int) ([]Message, error)
+	getMessagesFromDeadLetter func(int) ([]Message, error)
+}
+
+func (r messageRepository[Tx]) SaveMessage(message Message) Executable[Tx] {
+	return r.saveMessage(message)
+}
+
+func (r messageRepository[Tx]) SaveMessages(messages []Message) Executable[Tx] {
+	return r.saveMessages(messages)
+}
+
+func (r messageRepository[Tx]) SaveDeadLetter(message Message) Executable[Tx] {
+	return r.saveDeadLetter(message)
+}
+
+func (r messageRepository[Tx]) SaveDeadLetters(messages []Message) Executable[Tx] {
+	return r.saveDeadLetters(messages)
+}
+
+func (r messageRepository[Tx]) DeleteMessage(message Message) Executable[Tx] {
+	return r.deleteMessage(message)
+}
+
+func (r messageRepository[Tx]) DeleteMessages(messages []Message) Executable[Tx] {
+	return r.deleteMessages(messages)
+}
+
+func (r messageRepository[Tx]) DeleteDeadLetter(message Message) Executable[Tx] {
+	return r.deleteDeadLetter(message)
+}
+
+func (r messageRepository[Tx]) DeleteDeadLetters(messages []Message) Executable[Tx] {
+	return r.deleteDeadLetters(messages)
+}
+
+func (r messageRepository[Tx]) GetMessagesFromOutbox(batchSize int) ([]Message, error) {
+	return r.getMessagesFromOutbox(batchSize)
+}
+
+func (r messageRepository[Tx]) GetMessagesFromDeadLetter(batchSize int) ([]Message, error) {
+	return r.getMessagesFromDeadLetter(batchSize)
 }
 
 // messagePacket is a value object that represents a AbstractMessage packet.

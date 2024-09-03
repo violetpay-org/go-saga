@@ -53,11 +53,11 @@ type ExampleMessageRepository struct {
 	deadLetter sync.Map
 }
 
-func (e *ExampleMessageRepository) GetMessagesFromOutbox(batchSize int) ([]saga.Message, error) {
-	var outbox []saga.Message
+func (e *ExampleMessageRepository) GetMessagesFromOutbox(batchSize int) ([]ExampleMessage, error) {
+	var outbox []ExampleMessage
 
 	e.outbox.Range(func(key, value interface{}) bool {
-		outbox = append(outbox, value.(saga.Message))
+		outbox = append(outbox, value.(ExampleMessage))
 		return true
 	})
 
@@ -68,11 +68,11 @@ func (e *ExampleMessageRepository) GetMessagesFromOutbox(batchSize int) ([]saga.
 	return outbox[:batchSize], nil
 }
 
-func (e *ExampleMessageRepository) GetMessagesFromDeadLetter(batchSize int) ([]saga.Message, error) {
-	var deadLetter []saga.Message
+func (e *ExampleMessageRepository) GetMessagesFromDeadLetter(batchSize int) ([]ExampleMessage, error) {
+	var deadLetter []ExampleMessage
 
 	e.outbox.Range(func(key, value interface{}) bool {
-		deadLetter = append(deadLetter, value.(saga.Message))
+		deadLetter = append(deadLetter, value.(ExampleMessage))
 		return true
 	})
 
@@ -83,14 +83,14 @@ func (e *ExampleMessageRepository) GetMessagesFromDeadLetter(batchSize int) ([]s
 	return deadLetter[:batchSize], nil
 }
 
-func (e *ExampleMessageRepository) SaveMessage(message saga.Message) saga.Executable[ExampleTxContext] {
+func (e *ExampleMessageRepository) SaveMessage(message ExampleMessage) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
 		e.outbox.Store(message.ID(), message)
 		return nil
 	}
 }
 
-func (e *ExampleMessageRepository) SaveMessages(messages []saga.Message) saga.Executable[ExampleTxContext] {
+func (e *ExampleMessageRepository) SaveMessages(messages []ExampleMessage) saga.Executable[ExampleTxContext] {
 	executables := make([]saga.Executable[ExampleTxContext], 0)
 	for _, msg := range messages {
 		executables = append(executables, e.SaveMessage(msg))
@@ -99,14 +99,14 @@ func (e *ExampleMessageRepository) SaveMessages(messages []saga.Message) saga.Ex
 	return saga.CombineExecutables(executables...)
 }
 
-func (e *ExampleMessageRepository) SaveDeadLetter(message saga.Message) saga.Executable[ExampleTxContext] {
+func (e *ExampleMessageRepository) SaveDeadLetter(message ExampleMessage) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
 		e.deadLetter.Store(message.ID(), message)
 		return nil
 	}
 }
 
-func (e *ExampleMessageRepository) SaveDeadLetters(messages []saga.Message) saga.Executable[ExampleTxContext] {
+func (e *ExampleMessageRepository) SaveDeadLetters(messages []ExampleMessage) saga.Executable[ExampleTxContext] {
 	executables := make([]saga.Executable[ExampleTxContext], 0)
 	for _, msg := range messages {
 		executables = append(executables, e.SaveDeadLetter(msg))
@@ -115,14 +115,14 @@ func (e *ExampleMessageRepository) SaveDeadLetters(messages []saga.Message) saga
 	return saga.CombineExecutables(executables...)
 }
 
-func (e *ExampleMessageRepository) DeleteMessage(message saga.Message) saga.Executable[ExampleTxContext] {
+func (e *ExampleMessageRepository) DeleteMessage(message ExampleMessage) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
 		e.outbox.Delete(message.ID())
 		return nil
 	}
 }
 
-func (e *ExampleMessageRepository) DeleteMessages(messages []saga.Message) saga.Executable[ExampleTxContext] {
+func (e *ExampleMessageRepository) DeleteMessages(messages []ExampleMessage) saga.Executable[ExampleTxContext] {
 	executables := make([]saga.Executable[ExampleTxContext], 0)
 	for _, msg := range messages {
 		executables = append(executables, e.DeleteMessage(msg))
@@ -131,14 +131,14 @@ func (e *ExampleMessageRepository) DeleteMessages(messages []saga.Message) saga.
 	return saga.CombineExecutables(executables...)
 }
 
-func (e *ExampleMessageRepository) DeleteDeadLetter(message saga.Message) saga.Executable[ExampleTxContext] {
+func (e *ExampleMessageRepository) DeleteDeadLetter(message ExampleMessage) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
 		e.deadLetter.Delete(message.ID())
 		return nil
 	}
 }
 
-func (e *ExampleMessageRepository) DeleteDeadLetters(messages []saga.Message) saga.Executable[ExampleTxContext] {
+func (e *ExampleMessageRepository) DeleteDeadLetters(messages []ExampleMessage) saga.Executable[ExampleTxContext] {
 	executables := make([]saga.Executable[ExampleTxContext], 0)
 	for _, msg := range messages {
 		executables = append(executables, e.DeleteDeadLetter(msg))
