@@ -9,6 +9,7 @@ import (
 
 func main() {
 	relayer := messageRelayer.New(1, channelRegistry, UnitOfWorkFactory)
+	go messageRelayer.StartBatchRun(1*time.Second, relayer)
 
 	saga := NewExampleSaga()
 	saga.ApplySchemaTo(registry)
@@ -20,18 +21,22 @@ func main() {
 		log.Print(err)
 	}
 
+	go func() {
+		for {
+			load, err := exampleSessionRepository.Load("ExampleSaga-9cda1798-c3ad-463a-8a25-70c2416fed13")
+			if err != nil {
+				return
+			}
+			log.Print("", load.currentStep.Name()+" ", load.State(), load.IsPending())
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
 	fmt.Println("Hello, World!")
 
-	go messageRelayer.StartBatchRun(1*time.Second, relayer)
+	<-time.After(2 * 1000 * time.Millisecond)
 
-	<-time.After(1.5 * 1000 * time.Millisecond)
+	<-time.After(2 * 1100 * time.Millisecond)
 
 	log.Print("End relayer")
-
-	load, err := exampleSessionRepository.Load("ExampleSaga-9cda1798-c3ad-463a-8a25-70c2416fed13")
-	if err != nil {
-		return
-	}
-
-	log.Print(load.currentStep.Name()+" ", load.State(), load.IsPending())
 }

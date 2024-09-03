@@ -13,8 +13,12 @@ type ExampleSaga struct {
 }
 
 func (e *ExampleSaga) buildSaga() {
-	builder := saga.NewStepBuilder[ExampleTxContext]()
-	def := builder.Step("ExampleStep1").Invoke(ExampleEndpoint).Step("ExampleStep2").Invoke(ExampleEndpoint).Build()
+	def := saga.NewStepBuilder[ExampleTxContext]().
+		Step("ExampleStep1").
+		LocalInvoke(ExampleLocalEndpoint).
+		Step("ExampleStep2").
+		LocalInvoke(ExampleLocalEndpoint).
+		Build()
 
 	e.Saga = saga.NewSaga[*ExampleSession, ExampleTxContext](
 		"ExampleSaga",
@@ -24,7 +28,7 @@ func (e *ExampleSaga) buildSaga() {
 	)
 }
 
-func (e *ExampleSaga) ApplySchemaTo(registry *saga.Registry[ExampleTxContext]) {
+func (e *ExampleSaga) ApplySchemaTo(registry *saga.Registry[ExampleTxContext]) error {
 	e.buildSaga()
-	saga.RegisterSagaTo(registry, e.Saga)
+	return saga.RegisterSagaTo(registry, e.Saga)
 }

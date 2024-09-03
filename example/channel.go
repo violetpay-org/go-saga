@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/violetpay-org/go-saga"
 	"github.com/violetpay-org/go-saga/messageRelayer"
 )
@@ -21,6 +22,14 @@ var ExampleCommandChannel = messageRelayer.NewChannel[ExampleMessage, ExampleTxC
 		return ExampleSuccessChannel.Send(message)
 	},
 )
+var AlwaysFailCommandChannel = messageRelayer.NewChannel[ExampleMessage, ExampleTxContext](
+	"AlwaysFailCommandChannel",
+	registry,
+	exampleCommandRepository,
+	func(message saga.Message) error {
+		return errors.New("AlwaysFailCommandChannel failed")
+	},
+)
 
 var channelRegistry = messageRelayer.NewChannelRegistry[ExampleTxContext]()
 
@@ -29,6 +38,7 @@ func init() {
 	err = channelRegistry.RegisterChannel(ExampleSuccessChannel)
 	err = channelRegistry.RegisterChannel(ExampleFailureChannel)
 	err = channelRegistry.RegisterChannel(ExampleCommandChannel)
+	err = channelRegistry.RegisterChannel(AlwaysFailCommandChannel)
 
 	if err != nil {
 		panic(err)

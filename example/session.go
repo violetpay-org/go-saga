@@ -85,3 +85,18 @@ func (e *ExampleSessionRepository) Delete(sess *ExampleSession) saga.Executable[
 		return nil
 	}
 }
+
+func (e *ExampleSessionRepository) loadAll() ([]*ExampleSession, error) {
+	var sessions []*ExampleSession
+	e.sessions.Range(func(key, value interface{}) bool {
+		val := value.(ExampleSession)
+		sessions = append(sessions, &val)
+		return true
+	})
+
+	return sessions, nil
+}
+
+func (e *ExampleSessionRepository) clear() {
+	e.sessions = sync.Map{}
+}
