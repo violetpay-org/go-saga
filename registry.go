@@ -1,8 +1,6 @@
 package saga
 
 import (
-	"errors"
-	"log"
 	"sync"
 )
 
@@ -16,11 +14,11 @@ func NewRegistry[Tx TxContext](orchestrator Orchestrator[Tx]) *Registry[Tx] {
 
 func RegisterSagaTo[S Session, Tx TxContext](r *Registry[Tx], s Saga[S, Tx]) error {
 	if s.Name() == "" {
-		return errors.New("saga name is empty")
+		return ErrRegisterInvalidSaga
 	}
 
 	if r.HasSaga(s.Name()) {
-		return errors.New("saga already registered")
+		return ErrRegisterInvalidSaga
 	}
 
 	r.mutex.Lock()
@@ -58,7 +56,6 @@ func (r *Registry[Tx]) consumeMessage(packet messagePacket) error {
 
 	for _, f := range orchestrations {
 		if err := f(); err != nil {
-			log.Print("Error in orchestrating: ", err)
 			return err
 		}
 	}
@@ -68,11 +65,11 @@ func (r *Registry[Tx]) consumeMessage(packet messagePacket) error {
 
 func (r *Registry[Tx]) StartSaga(sagaName string, sessionArgs map[string]interface{}) error {
 	if sagaName == "" {
-		return errors.New("saga name is empty")
+		return ErrInvalidSagaStart
 	}
 
 	if sessionArgs == nil {
-		return errors.New("session args is nil")
+		return ErrInvalidSagaStart
 	}
 
 	r.mutex.Lock()
@@ -87,10 +84,8 @@ func (r *Registry[Tx]) StartSaga(sagaName string, sessionArgs map[string]interfa
 	}
 
 	if target == nil {
-		return errors.New("saga not found")
+		return ErrSagaNotFound
 	}
-
-	log.Print("Starting saga: ", sagaName)
 
 	return r.orchestrator.StartSaga(*target, sessionArgs)
 }

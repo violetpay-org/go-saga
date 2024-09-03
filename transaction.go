@@ -2,7 +2,6 @@ package saga
 
 import (
 	"context"
-	"errors"
 	"log"
 )
 
@@ -87,7 +86,7 @@ func NewUnitOfWork[Tx TxContext](ctx context.Context, handler TxHandler[Tx]) *Un
 
 func (u *UnitOfWork[Tx]) AddWorkUnit(workUnit Executable[Tx]) error {
 	if u.commited {
-		return errors.New("cannot add work unit to immutable unit of work")
+		return ErrUnitOfWorkImmutable
 	}
 
 	u.unitChan <- workUnit
@@ -96,7 +95,7 @@ func (u *UnitOfWork[Tx]) AddWorkUnit(workUnit Executable[Tx]) error {
 
 func (u *UnitOfWork[Tx]) commitExecutables(ctx Tx) error {
 	if u.commited {
-		return errors.New("cannot commit immutable unit of work, already commited")
+		return ErrUnitOfWorkImmutable
 	}
 
 	u.commited = true
@@ -135,7 +134,6 @@ commitLoop:
 }
 
 func (u *UnitOfWork[Tx]) Commit() error {
-	log.Print("Committing unit of work")
 	tx, err := u.handler.BeginTx(u.ctx)
 	defer u.handler.Rollback(tx)
 	if err != nil {

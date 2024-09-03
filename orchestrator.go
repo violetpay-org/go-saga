@@ -2,8 +2,6 @@ package saga
 
 import (
 	"context"
-	"errors"
-	"log"
 )
 
 type Orchestrator[Tx TxContext] interface {
@@ -27,21 +25,19 @@ func (o *orchestrator[Tx]) StartSaga(saga Saga[Session, Tx], sessionArgs map[str
 
 	sagaSession := saga.createSession(sessionArgs)
 	if sagaSession == nil {
-		return errors.New("session is nil")
+		return ErrSessionCreationFailed
 	}
 
 	if sagaSession.ID() == "" {
-		return errors.New("session ID is empty")
+		return ErrSessionIDEmpty
 	}
 
 	sagaDef := saga.Definition()
 
 	firstStep := sagaDef.FirstStep()
 	if firstStep == nil {
-		return errors.New("saga has no first step")
+		return ErrSagaHasNoSteps
 	}
-
-	log.Print("Updating current step")
 
 	err = sagaSession.UpdateCurrentStep(firstStep)
 	if err != nil {
@@ -53,15 +49,11 @@ func (o *orchestrator[Tx]) StartSaga(saga Saga[Session, Tx], sessionArgs map[str
 		return err
 	}
 
-	log.Print("Saving session")
-
 	saver := saga.Repository().Save(sagaSession)
 	err = uow.AddWorkUnit(saver)
 	if err != nil {
 		return err
 	}
-
-	log.Print("Inv")
 
 	if firstStep.IsInvocable() {
 		err = o.invokeStep(sagaSession, firstStep, uow)
@@ -75,11 +67,8 @@ func (o *orchestrator[Tx]) StartSaga(saga Saga[Session, Tx], sessionArgs map[str
 		}
 	}
 
-	log.Print("Committing")
-
 	err = uow.Commit()
 
-	log.Print("Committed")
 	return err
 }
 
@@ -89,7 +78,7 @@ func (o *orchestrator[Tx]) Orchestrate(saga Saga[Session, Tx], packet messagePac
 
 	origin := packet.Origin()
 	if origin == "" {
-		return errors.New("message origin is empty")
+		return ErrUnknownMessageOrigin
 	}
 
 	sagaSession, err := saga.Repository().Load(packet.Payload().SessionID())
@@ -98,12 +87,12 @@ func (o *orchestrator[Tx]) Orchestrate(saga Saga[Session, Tx], packet messagePac
 	}
 
 	if sagaSession.State() == StateCompleted || sagaSession.State() == StateFailed {
-		return errors.New("session is already completed or failed")
+		return ErrDeadSession
 	}
 
 	currentStep := sagaSession.CurrentStep()
 	if saga.Definition().Exists(currentStep) == false {
-		return errors.New("session has no current step")
+		return ErrSessionStepAndDefinitionMismatch
 	}
 
 	uow, err = o.uowFactory(context.Background())
@@ -135,8 +124,6 @@ func (o *orchestrator[Tx]) Orchestrate(saga Saga[Session, Tx], packet messagePac
 	if err != nil {
 		return err
 	}
-
-	log.Print("Committed orchestration")
 
 	return nil
 }
@@ -172,16 +159,11 @@ func (o *orchestrator[Tx]) invokeStep(session Session, curStep Step, uow *UnitOf
 func (o *orchestrator[Tx]) stepForwardAndInvoke(session Session, curStep Step, def Definition, uow *UnitOfWork[Tx]) error {
 	var err error
 
-	log.Print("Setting state to is pending")
-
 	nextStep := def.NextStep(curStep)
 	if nextStep == nil {
-		log.Print("Setting state to completed")
 		session.SetState(StateCompleted)
 		return nil
 	}
-
-	log.Print("Updating current step")
 
 	err = session.UpdateCurrentStep(nextStep)
 	if err != nil {
@@ -194,7 +176,6 @@ func (o *orchestrator[Tx]) stepForwardAndInvoke(session Session, curStep Step, d
 			return err
 		}
 
-		log.Print("Done")
 		return nil
 	}
 
@@ -263,7 +244,7 @@ func (o *orchestrator[Tx]) handleInvocationResponse(session Session, origin Chan
 
 func (o *orchestrator[Tx]) retryInvocation(session Session, step Step, uow *UnitOfWork[Tx]) error {
 	if !step.MustBeCompleted() {
-		return errors.New("step must be completed")
+		return ErrRetryCalledOnNonRetryingStep
 	}
 
 	session.SetState(StateIsRetrying)
@@ -294,7 +275,7 @@ func (o *orchestrator[Tx]) isFailureInvocationResponse(origin ChannelName, step 
 		return false, nil
 	}
 
-	return false, errors.New("unknown chanaaanel")
+	return false, ErrUnknownMessageOrigin
 }
 
 func (o *orchestrator[Tx]) isFailureCompensationResponse(origin ChannelName, step Step) (bool, error) {
@@ -320,7 +301,7 @@ func (o *orchestrator[Tx]) isFailureCompensationResponse(origin ChannelName, ste
 		return false, nil
 	}
 
-	return false, errors.New("unknown channel")
+	return false, ErrUnknownMessageOrigin
 }
 
 func (o *orchestrator[Tx]) handleCompensationResponse(session Session, origin ChannelName, msg Message, curStep Step, def Definition, uow *UnitOfWork[Tx]) error {

@@ -43,10 +43,10 @@ func TestOrchestrator(t *testing.T) {
 		)
 
 		channelRegistry = messageRelayer.NewChannelRegistry[ExampleTxContext]()
-		err := channelRegistry.RegisterChannel(ExampleSuccessChannel)
-		err = channelRegistry.RegisterChannel(ExampleFailureChannel)
-		err = channelRegistry.RegisterChannel(ExampleCommandChannel)
-		err = channelRegistry.RegisterChannel(AlwaysFailCommandChannel)
+		err := channelRegistry.Register(ExampleSuccessChannel)
+		err = channelRegistry.Register(ExampleFailureChannel)
+		err = channelRegistry.Register(ExampleCommandChannel)
+		err = channelRegistry.Register(AlwaysFailCommandChannel)
 		assert.Nil(t, err)
 
 		exampleSaga = saga.Saga[*ExampleSession, ExampleTxContext]{}
@@ -82,7 +82,7 @@ func TestOrchestrator(t *testing.T) {
 		buildSagaAndRegister(builder.Build())
 
 		err := registry.StartSaga(exampleSaga.Name(), map[string]interface{}{})
-		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, saga.ErrSagaHasNoSteps)
 	})
 
 	t.Run("should got session after saga started", func(t *testing.T) {
@@ -115,7 +115,7 @@ func TestOrchestrator(t *testing.T) {
 		)
 
 		err := saga.RegisterSagaTo(registry, exampleSaga)
-		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, saga.ErrRegisterInvalidSaga)
 	})
 
 	t.Run("should set session is pending when start saga", func(t *testing.T) {
@@ -330,21 +330,21 @@ func TestOrchestrator(t *testing.T) {
 			),
 			exampleField: "",
 		})
-		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, saga.ErrDeadSession)
 	})
 
 	t.Run("should be return error when start saga with empty name", func(t *testing.T) {
 		CleanUp(t)
 
 		err := registry.StartSaga("", map[string]interface{}{})
-		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, saga.ErrInvalidSagaStart)
 	})
 
 	t.Run("should be return error when start saga with empty name", func(t *testing.T) {
 		CleanUp(t)
 
 		err := registry.StartSaga("Test", nil)
-		assert.NotNil(t, err)
+		assert.ErrorIs(t, err, saga.ErrInvalidSagaStart)
 	})
 
 	t.Run("should be success multiple steps", func(t *testing.T) {
