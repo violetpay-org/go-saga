@@ -454,9 +454,6 @@ func TestOrchestrator(t *testing.T) {
 		})
 		assert.Nil(t, err)
 
-		err = relayer.Execute()
-		assert.Nil(t, err)
-
 		sessions, err = sessionRepository.loadAll()
 		assert.Nil(t, err)
 
