@@ -1,5 +1,7 @@
 # go-saga
 
+[![Test](https://github.com/violetpay-org/go-saga/actions/workflows/test.yml/badge.svg)](https://github.com/violetpay-org/go-saga/actions/workflows/test.yml)
+
 go-saga is a Go library for distributed transactions management between microservices using the Saga pattern.
 
 ## Getting Started
