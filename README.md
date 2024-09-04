@@ -4,6 +4,8 @@
 
 go-saga is a Go library for distributed transactions management between microservices using the Saga pattern.
 
+<img alt="image" src="/docs/saga.png" width="600px"/>
+
 ## Getting Started
 
 * Description for entire system is available at [here](docs/description.md). Korean version is also available.
