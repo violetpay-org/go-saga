@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/violetpay-org/go-saga"
 	"sync"
 )
@@ -73,7 +72,6 @@ func (e *ExampleSessionRepository) Load(id string) (*ExampleSession, error) {
 
 func (e *ExampleSessionRepository) Save(sess *ExampleSession) saga.Executable[ExampleTxContext] {
 	return func(ctx ExampleTxContext) error {
-		fmt.Println("Saving session", sess.ID(), sess.State(), sess.IsPending(), sess.currentStep.Name())
 		e.sessions.Store(sess.ID(), *sess)
 		return nil
 	}
