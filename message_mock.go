@@ -41,52 +41,52 @@ func newMockAbstractMessageRepository() *mockAbstractMessageRepository {
 type mockAbstractMessageRepository struct {
 }
 
-func (m *mockAbstractMessageRepository) GetMessagesFromOutbox(batchSize int) ([]Message, error) {
+func (m *mockAbstractMessageRepository) GetMessagesFromOutbox(batchSize int) ([]mockMessage, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) GetMessagesFromDeadLetter(batchSize int) ([]Message, error) {
+func (m *mockAbstractMessageRepository) GetMessagesFromDeadLetter(batchSize int) ([]mockMessage, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) SaveMessage(message Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) SaveMessage(message mockMessage) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) SaveMessages(messages []Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) SaveMessages(messages []mockMessage) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) SaveDeadLetter(message Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) SaveDeadLetter(message mockMessage) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) SaveDeadLetters(message []Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) SaveDeadLetters(message []mockMessage) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) DeleteMessage(message Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) DeleteMessage(message mockMessage) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) DeleteMessages(messages []Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) DeleteMessages(messages []mockMessage) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) DeleteDeadLetter(message Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) DeleteDeadLetter(message mockMessage) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (m *mockAbstractMessageRepository) DeleteDeadLetters(messages []Message) Executable[mockTxContext] {
+func (m *mockAbstractMessageRepository) DeleteDeadLetters(messages []mockMessage) Executable[mockTxContext] {
 	//TODO implement me
 	panic("implement me")
 }

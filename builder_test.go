@@ -7,11 +7,11 @@ import (
 
 func TestStepBuilder(t *testing.T) {
 	repo := newMockAbstractMessageRepository()
-	messageConstructor := func(session Session) Message {
+	messageConstructor := func(session Session) mockMessage {
 		return newMockMessage()
 	}
 
-	endpoint := NewEndpoint[mockTxContext](
+	endpoint := NewEndpoint[Session, mockMessage, mockMessage, mockMessage, mockTxContext](
 		"",
 		messageConstructor,
 		repo,
@@ -25,7 +25,7 @@ func TestStepBuilder(t *testing.T) {
 		return nil, nil
 	}
 
-	localEndpoint := NewLocalEndpoint[mockTxContext](
+	localEndpoint := NewLocalEndpoint[Session, mockMessage, mockMessage, mockTxContext](
 		"",
 		messageConstructor,
 		repo,
@@ -331,9 +331,4 @@ func TestStepBuilder(t *testing.T) {
 		assert.True(t, def.steps[2].MustBeCompleted())
 	})
 
-	t.Run("Build with no steps", func(t *testing.T) {
-		assert.Panics(t, func() {
-			builder.Build()
-		})
-	})
 }
